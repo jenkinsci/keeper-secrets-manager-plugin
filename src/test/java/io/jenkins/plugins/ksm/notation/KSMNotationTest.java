@@ -7,7 +7,7 @@ public class KSMNotationTest {
     public void testSmokeTest() {
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password");
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password", false);
             Assert.assertEquals("XXXX", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.STANDARD, result.getFieldDataType());
             Assert.assertEquals("password", result.getFieldKey());
@@ -19,7 +19,7 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password[0]");
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password[0]", false);
             Assert.assertEquals("XXXX", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.STANDARD, result.getFieldDataType());
             Assert.assertEquals("password", result.getFieldKey());
@@ -31,7 +31,7 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password[]");
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password[]", false);
             Assert.assertEquals("XXXX", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.STANDARD, result.getFieldDataType());
             Assert.assertEquals("password", result.getFieldKey());
@@ -43,7 +43,7 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC","keeper://XXXX/custom_field/name[first]");
+            KsmNotationItem result = KsmNotation.parse("ABC","keeper://XXXX/custom_field/name[first]", false);
             Assert.assertEquals("XXXX", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.CUSTOM, result.getFieldDataType());
             Assert.assertEquals("name", result.getFieldKey());
@@ -55,7 +55,7 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/custom_field/name[2][last]");
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/custom_field/name[2][last]", false);
             Assert.assertEquals("XXXX", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.CUSTOM, result.getFieldDataType());
             Assert.assertEquals("name", result.getFieldKey());

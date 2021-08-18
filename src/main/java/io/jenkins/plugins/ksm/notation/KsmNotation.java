@@ -10,17 +10,17 @@ public class KsmNotation {
     // A notation might start with a prefix, that will need to be removed. This is the that String prefix.
     public static final String notationPrefix = "keeper";
 
-    public static KsmNotationItem find(String name, String notation) throws Exception {
+    public static KsmNotationItem find(String name, String notation, boolean allowFailure) throws Exception {
 
         KsmNotationItem request = null;
         if (notation.startsWith(notationPrefix)) {
-            request = parse(name, notation);
+            request = parse(name, notation, allowFailure);
         }
         return request;
     }
 
     @SuppressWarnings("unused")
-    public static KsmNotationItem parse(String name, String notation) throws Exception {
+    public static KsmNotationItem parse(String name, String notation, boolean allowFailure) throws Exception {
 
         // If the notation starts with the notation prefix, normally used with env vars, remove it.
         if (notation.startsWith(notationPrefix)) {
@@ -103,6 +103,6 @@ public class KsmNotation {
            fieldKey = keyParts[0];
         }
 
-        return new KsmNotationItem(name, uid, fieldDataType, fieldKey, returnSingle, index, dictKey);
+        return new KsmNotationItem(name, notation, uid, fieldDataType, fieldKey, returnSingle, index, dictKey, allowFailure);
     }
 }

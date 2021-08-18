@@ -6,6 +6,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 public class KsmNotationItem {
 
     private String name;
+    private String notation;
     private String uid;
     private KsmFieldDataEnumType fieldDataType;
     private String fieldKey;
@@ -13,16 +14,20 @@ public class KsmNotationItem {
     private Integer arrayIndex;
     private String dictKey;
     private String value;
+    private boolean allowFailure;
+    private String error;
 
     @DataBoundConstructor
     public KsmNotationItem(
             String name,
+            String notation,
             String uid,
             KsmFieldDataEnumType fieldDataType,
             String fieldKey,
             Boolean returnSingle,
             Integer arrayIndex,
-            String dictKey) {
+            String dictKey,
+            boolean allowFailure) {
 
         if (returnSingle == null) {
             returnSingle = Boolean.TRUE;
@@ -32,16 +37,21 @@ public class KsmNotationItem {
         }
 
         this.name = name;
+        this.notation = notation;
         this.uid = uid;
         this.fieldDataType = fieldDataType;
         this.fieldKey = fieldKey;
         this.returnSingle = returnSingle;
         this.arrayIndex = arrayIndex;
         this.dictKey = dictKey;
+        this.allowFailure = allowFailure;
     }
 
     public String getName() {
         return name;
+    }
+    public String getNotation() {
+        return notation;
     }
     public String getUid() {
         return uid;
@@ -64,10 +74,20 @@ public class KsmNotationItem {
     public String getValue() {
         return value;
     }
+    public boolean getAllowFailure() {
+        return allowFailure;
+    }
+    public String getError() {
+        return error;
+    }
 
     @DataBoundSetter
     public void setName(String name) {
         this.name = name;
+    }
+    @DataBoundSetter
+    public void setNotation(String notation) {
+        this.name = notation;
     }
     @DataBoundSetter
     public void setUid(String uid) {
@@ -96,5 +116,17 @@ public class KsmNotationItem {
     @DataBoundSetter
     public void setValue(String value) {
         this.value = value;
+    }
+    @DataBoundSetter
+    public void setAllowFailure(boolean allowFailure) {
+        this.allowFailure = allowFailure;
+    }
+    @DataBoundSetter
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public void clearError() {
+        this.error = null;
     }
 }

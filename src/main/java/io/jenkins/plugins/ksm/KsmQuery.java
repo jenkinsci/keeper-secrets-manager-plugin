@@ -1,21 +1,84 @@
 package io.jenkins.plugins.ksm;
 
 import com.keepersecurity.secretsManager.core.*;
-import static com.keepersecurity.secretsManager.core.SecretsManager.*;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotationItem;
-
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.*;
-
 import hudson.util.Secret;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 
 public class KsmQuery {
 
     KsmCredential credential;
 
+    private static final Logger logger = Logger.getLogger(KsmQuery.class.getName());
+
     public KsmQuery(KsmCredential credential) {
         this.credential = credential;
+    }
+
+    private static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname) {
+
+        LocalConfigStorage storage = new LocalConfigStorage();
+        storage.saveString("clientId", clientId.trim());
+        storage.saveString("privateKey", privateKey.trim());
+        storage.saveString("appKey", appKey.trim());
+
+        // Allow for aliases.
+        hostname = hostname.trim();
+        switch(hostname) {
+            case "US": hostname="keepersecurity.com"; break;
+            case "EU": hostname="keepersecurity.eu"; break;
+            case "AU": hostname="keepersecurity.com.au"; break;
+            case "US_GOV": hostname="govcloud.keepersecurity.us"; break;
+            default:
+                // nothing
+        }
+
+        storage.saveString("hostname", hostname);
+
+        logger.log(Level.FINE, "Setting up the secrets manager options");
+
+        return new SecretsManagerOptions(storage);
+    }
+
+    public static String testCredentials(String clientId, String privateKey, String appKey, String hostname) {
+
+        logger.log(Level.FINE, "Testing credentials");
+
+        try {
+            SecretsManagerOptions options = getOptions(clientId, privateKey, appKey, hostname);
+
+            logger.log(Level.FINE, options.toString());
+            KeeperSecrets secrets = SecretsManager.getSecrets(options);
+            List<KeeperRecord> records= secrets.getRecords();
+            logger.log(Level.FINE, "Found " + records.size() + " records");
+        }
+        catch(Exception e) {
+            String msg = e.getMessage();
+
+            logger.log(Level.WARNING, "Testing credentials resulted in an error: " + e.getMessage());
+
+            // See if this is one of our error message
+            try {
+                JSONParser jsonParser = new JSONParser();
+                JSONObject obj = (JSONObject) jsonParser.parse(msg);
+                msg = (String) obj.get("message");
+            }
+            catch(ParseException ignore ){
+                // Don't do anything. Keep msg the same.
+            }
+
+            return "Validation of the credentials resulted in an error: " + msg;
+        }
+
+        return null;
     }
 
     public void run(Map<String, KsmNotationItem> requests) throws Exception {
@@ -26,17 +89,13 @@ public class KsmQuery {
             uniqueUids.add(entry.getValue().getUid());
         }
 
-        // Set up our creds to the secrets manager.
-        LocalConfigStorage storage = new LocalConfigStorage();
-        storage.saveString("clientKey", Secret.toString(credential.getClientKey()));
-        storage.saveString("clientId", Secret.toString(credential.getClientId()));
-        storage.saveString("privateKey", Secret.toString(credential.getPrivateKey()));
-        storage.saveString("publicKey", Secret.toString(credential.getPublicKey()));
-        storage.saveString("appKey", Secret.toString(credential.getAppKey()));
-        initializeStorage(storage, Secret.toString(credential.getClientKey()), credential.getHostname());
+        SecretsManagerOptions options = getOptions(
+                Secret.toString(credential.getClientId()),
+                Secret.toString(credential.getPrivateKey()),
+                Secret.toString(credential.getAppKey()),
+                credential.getHostname());
 
         // Query the unique record ids.
-        SecretsManagerOptions options = new SecretsManagerOptions(storage);
         KeeperSecrets secrets = SecretsManager.getSecrets(options, new ArrayList<>(uniqueUids));
 
         // Place the secret into a lookup map using their Uid as the key.
@@ -60,20 +119,29 @@ public class KsmQuery {
                 arrayIndex = -1;
             }
 
-            switch (request.getFieldDataType()) {
-                case STANDARD:
-                    request.setValue(recordField.getStandardFieldValue(record, fieldKey, arrayIndex, dictKey));
-                    break;
-                case CUSTOM:
-                    request.setValue(recordField.getCustomFieldValue(record, fieldKey, arrayIndex, dictKey));
-                    break;
-                case FILE:
-                    KeeperFile file = record.getFileByName(fieldKey);
-                    if (file != null) {
-                        byte[] fileBytes = downloadFile(file);
-                        request.setValue(Arrays.toString(fileBytes));
-                    }
-                    break;
+            try {
+                request.clearError();
+                switch (request.getFieldDataType()) {
+                    case STANDARD:
+                        request.setValue(recordField.getStandardFieldValue(record, fieldKey, arrayIndex, dictKey));
+                        break;
+                    case CUSTOM:
+                        request.setValue(recordField.getCustomFieldValue(record, fieldKey, arrayIndex, dictKey));
+                        break;
+                    case FILE:
+                        KeeperFile file = record.getFileByName(fieldKey);
+                        if (file != null) {
+                            byte[] fileBytes = SecretsManager.downloadFile(file);
+                            request.setValue(new String(fileBytes, StandardCharsets.UTF_8));
+                        }
+                        break;
+                }
+            }
+            catch(Exception e) {
+                request.setError(e.toString());
+                if (!request.getAllowFailure()) {
+                    throw new Exception("For environment variable " + request.getName() + ", " + request.getNotation() + ": ");
+                }
             }
         }
     }

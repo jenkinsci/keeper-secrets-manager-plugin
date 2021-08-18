@@ -1,50 +1,44 @@
 package io.jenkins.plugins.ksm.credential;
 
 import hudson.Extension;
+import hudson.util.FormValidation;
 import hudson.util.Secret;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
+import io.jenkins.plugins.ksm.KsmQuery;
 import org.kohsuke.stapler.DataBoundConstructor;
-
+import org.kohsuke.stapler.QueryParameter;
 
 public class KsmCredential extends BaseStandardCredentials {
 
-    private Secret clientKey;
     private Secret clientId;
     private Secret privateKey;
-    private Secret publicKey;
     private Secret appKey;
     private String hostname;
-    private Boolean useSkipSslVerification;
+    private boolean useSkipSslVerification;
     private String keyId;
+    private boolean allowConfigInject;
 
     @DataBoundConstructor
     public KsmCredential(CredentialsScope scope, String id, String description,
-                         Secret clientKey, Secret clientId, Secret privateKey, Secret publicKey, Secret appKey,
-                         String hostname, Boolean useSkipSslVerification, String keyId) {
+                         Secret clientId, Secret privateKey, Secret appKey,
+                         String hostname, boolean useSkipSslVerification, String keyId, boolean allowConfigInject) {
         super(scope, id, description);
-        this.clientKey = clientKey;
+
         this.clientId = clientId;
         this.privateKey = privateKey;
-        this.publicKey = publicKey;
         this.appKey = appKey;
         this.hostname = hostname;
         this.useSkipSslVerification =useSkipSslVerification;
         this.keyId = keyId;
+        this.allowConfigInject = allowConfigInject;
     }
 
-
-    public Secret getClientKey() {
-        return clientKey;
-    }
     public Secret getClientId() {
         return clientId;
     }
     public Secret getPrivateKey() {
         return privateKey;
-    }
-    public Secret getPublicKey() {
-        return publicKey;
     }
     public Secret getAppKey() {
         return appKey;
@@ -52,12 +46,14 @@ public class KsmCredential extends BaseStandardCredentials {
     public String getHostname() {
         return hostname;
     }
-
-    public Boolean getUseSkipSslVerification() {
+    public boolean getUseSkipSslVerification() {
         return useSkipSslVerification;
     }
     public String getKeyId() {
         return keyId;
+    }
+    public boolean allowConfigInject() {
+        return allowConfigInject;
     }
 
     @Extension
@@ -65,6 +61,21 @@ public class KsmCredential extends BaseStandardCredentials {
         @Override
         public String getDisplayName() {
             return "Keeper Secrets Manager";
+        }
+
+        public FormValidation doTestCredential(
+                @QueryParameter String hostname,
+                @QueryParameter String clientId,
+                @QueryParameter String privateKey,
+                @QueryParameter String appKey,
+                @QueryParameter String useSkipSslVerification
+        ) {
+            String error = KsmQuery.testCredentials(clientId, privateKey, appKey, hostname);
+            if (error != null) {
+                return FormValidation.error(error);
+            }
+
+            return FormValidation.ok();
         }
     }
 }

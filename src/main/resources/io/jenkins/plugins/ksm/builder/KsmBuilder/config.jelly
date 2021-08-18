@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <div>
+        Add environmental variables containing secrets.
+    </div>
+    <f:entry title="Credential" field="credentialsId">
+        <f:select/>
+    </f:entry>
+    <f:repeatableProperty field="secrets" add="Add Secret"/>
+</j:jelly>

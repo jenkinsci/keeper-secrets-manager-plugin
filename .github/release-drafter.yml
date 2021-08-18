@@ -1,0 +1,2 @@
+_extends: .github
+tag-template: keeper-$NEXT_MINOR_VERSION

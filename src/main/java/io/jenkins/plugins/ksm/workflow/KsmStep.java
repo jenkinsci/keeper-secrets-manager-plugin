@@ -1,10 +1,6 @@
 package io.jenkins.plugins.ksm.workflow;
 
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.console.ConsoleLogFilter;
-import hudson.util.Secret;
-import io.jenkins.plugins.ksm.notation.KsmNotationRequest;
+import io.jenkins.plugins.ksm.notation.KsmNotationItem;
 import org.jenkinsci.plugins.workflow.steps.*;
 import hudson.Extension;
 
@@ -21,7 +17,6 @@ import javax.annotation.Nonnull;
 
 import io.jenkins.plugins.ksm.KsmSecret;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
-import io.jenkins.plugins.ksm.notation.KsmNotationRequest;
 
 
 public class KsmStep extends Step {
@@ -70,10 +65,11 @@ public class KsmStep extends Step {
             // For each application, for all the secrets, replace them with actual secrets.
             HashMap<String,String> envVars = new HashMap<>();
             for (KsmApplication application : step.application) {
+
                 for(KsmSecret secret : application.getSecrets()) {
 
                     try {
-                        KsmNotationRequest req = KsmNotation.parse(secret.getNotation());
+                        KsmNotationItem req = KsmNotation.parse(secret.getEnvVar(), secret.getNotation());
                         // TODO: Do replace
 
                         envVars.put(secret.getEnvVar(), secret.getNotation());

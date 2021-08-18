@@ -1,4 +1,4 @@
-package io.jenkins.plugins.ksm.creds;
+package io.jenkins.plugins.ksm.credential;
 
 import hudson.Extension;
 import hudson.util.Secret;
@@ -7,24 +7,26 @@ import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 
-public class KsmCredentials extends BaseStandardCredentials {
+public class KsmCredential extends BaseStandardCredentials {
 
     private Secret clientKey;
     private Secret clientId;
     private Secret privateKey;
+    private Secret publicKey;
     private Secret appKey;
     private String hostname;
     private Boolean useSkipSslVerification;
     private String keyId;
 
     @DataBoundConstructor
-    public KsmCredentials(CredentialsScope scope, String id, String description,
-                          Secret clientKey, Secret clientId, Secret privateKey, Secret appKey,
-                          String hostname, Boolean useSkipSslVerification, String keyId) {
+    public KsmCredential(CredentialsScope scope, String id, String description,
+                         Secret clientKey, Secret clientId, Secret privateKey, Secret publicKey, Secret appKey,
+                         String hostname, Boolean useSkipSslVerification, String keyId) {
         super(scope, id, description);
         this.clientKey = clientKey;
         this.clientId = clientId;
         this.privateKey = privateKey;
+        this.publicKey = publicKey;
         this.appKey = appKey;
         this.hostname = hostname;
         this.useSkipSslVerification =useSkipSslVerification;
@@ -40,6 +42,9 @@ public class KsmCredentials extends BaseStandardCredentials {
     }
     public Secret getPrivateKey() {
         return privateKey;
+    }
+    public Secret getPublicKey() {
+        return publicKey;
     }
     public Secret getAppKey() {
         return appKey;

@@ -12,10 +12,10 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.ksm.KsmCommon;
-import io.jenkins.plugins.ksm.creds.KsmCredentials;
+import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
-import io.jenkins.plugins.ksm.notation.KsmNotationRequest;
+import io.jenkins.plugins.ksm.notation.KsmNotationItem;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 
@@ -26,8 +26,9 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.kohsuke.stapler.AncestorInPath;
 import javax.annotation.Nonnull;
@@ -38,12 +39,13 @@ import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 
 import io.jenkins.plugins.ksm.KsmSecret;
+import io.jenkins.plugins.ksm.KsmQuery;
 
 
 public class KsmBuilder extends Builder implements SimpleBuildStep {
 
     private String credentialsId;
-    private List<KsmSecret> secrets = new ArrayList<>();
+    private List<KsmSecret> secrets;
 
     @DataBoundConstructor
     public KsmBuilder(String credentialsId, List<KsmSecret> secrets) {
@@ -74,25 +76,31 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
 
         listener.getLogger().println("perform");
 
-        KsmCredentials ksmCredential = CredentialsProvider.findCredentialById(
+        KsmCredential credential = CredentialsProvider.findCredentialById(
                 credentialsId,
-                KsmCredentials.class,
+                KsmCredential.class,
                 build
         );
-        if (ksmCredential == null) {
-            // logger.error("Cannot find the credential id " + credId + " for KSM secrets");
+        if (credential == null) {
+            listener.getLogger().println(KsmCommon.errorPrefix + "Cannot find the credential id " + credentialsId + ".");
             build.setResult(Result.FAILURE);
             return false;
         }
 
+        HashMap<String, KsmNotationItem> notationItems = new HashMap<String, KsmNotationItem>();
+        KsmQuery query = new KsmQuery(credential);
+
         listener.getLogger().println("CREDENTIALS");
-        listener.getLogger().println("Client Key = " + ksmCredential.getClientKey());
-        listener.getLogger().println("Client Id = " + ksmCredential.getClientId());
-        listener.getLogger().println("Private Key = " + ksmCredential.getPrivateKey());
-        listener.getLogger().println("App Key = " + ksmCredential.getAppKey());
-        listener.getLogger().println("Hostname = " + ksmCredential.getHostname());
+        listener.getLogger().println("Client Key = " + credential.getClientKey());
+        listener.getLogger().println("Client Id = " + credential.getClientId());
+        listener.getLogger().println("Private Key = " + credential.getPrivateKey());
+        listener.getLogger().println("Public Key = " + credential.getPublicKey());
+        listener.getLogger().println("App Key = " + credential.getAppKey());
+        listener.getLogger().println("Hostname = " + credential.getHostname());
         listener.getLogger().println("");
 
+        // Create notation items from the build secrets and add them to a map. Use the env var name as the
+        // key since that is unique.
         listener.getLogger().println("SECRETS");
         for (KsmSecret item:  secrets) {
             listener.getLogger().println("-----------------");
@@ -101,28 +109,33 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
             listener.getLogger().println("");
 
             try {
-                KsmNotationRequest req = KsmNotation.parse(item.getNotation());
-                listener.getLogger().println("UID = " + req.getUid());
-                listener.getLogger().println("Field Data Type = " + req.getFieldDataType());
-                listener.getLogger().println("Field Key = " + req.getFieldKey());
-                listener.getLogger().println("Single Value = " + req.getReturnSingle());
-                listener.getLogger().println("Array Index = " + req.getArrayIndex());
-                listener.getLogger().println("Dict Key = " + req.getDictKey());
+                KsmNotationItem notationItem = KsmNotation.parse(item.getEnvVar(), item.getNotation());
+                notationItems.put(item.getEnvVar(), notationItem);
+
+                listener.getLogger().println("UID = " + notationItem.getUid());
+                listener.getLogger().println("Field Data Type = " + notationItem.getFieldDataType());
+                listener.getLogger().println("Field Key = " + notationItem.getFieldKey());
+                listener.getLogger().println("Single Value = " + notationItem.getReturnSingle());
+                listener.getLogger().println("Array Index = " + notationItem.getArrayIndex());
+                listener.getLogger().println("Dict Key = " + notationItem.getDictKey());
                 listener.getLogger().println("");
             }
             catch(Exception e) {
-                listener.getLogger().println("ERROR: " + e.getMessage());
+                listener.getLogger().println(KsmCommon.errorPrefix + "The secret " + item.getEnvVar() +
+                        " contains invalid syntax: " + e.getMessage());
+                return false;
             }
         }
         listener.getLogger().println("");
 
+        // Get existing environmental variables.
         Jenkins jenkins = Jenkins.getInstanceOrNull();
         assert jenkins != null;
         DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = jenkins.getGlobalNodeProperties();
         List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties.getAll(hudson.slaves.EnvironmentVariablesNodeProperty.class);
 
-        EnvironmentVariablesNodeProperty newEnvVarsNodeProperty = null;
-        EnvVars envVars = null;
+        EnvironmentVariablesNodeProperty newEnvVarsNodeProperty;
+        EnvVars envVars;
 
         if (envVarsNodePropertyList == null || envVarsNodePropertyList.isEmpty()) {
             newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
@@ -131,8 +144,38 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
         } else {
             envVars = envVarsNodePropertyList.get(0).getEnvVars();
         }
-        for (KsmSecret item : secrets) {
-            envVars.put(item.getEnvVar(), item.getNotation());
+
+        // Replace any env vars using the Keeper notation. This might be set on a node, load in a prior build step,
+        // come from another env var plugin, etc. These are ones not from the Keeper plugin.
+        for(Map.Entry<String, String> entry: envVars.entrySet()) {
+            try {
+                KsmNotationItem item = KsmNotation.find(entry.getKey(), entry.getValue());
+                if (item != null) {
+                    notationItems.put(entry.getKey(), item);
+                }
+            }
+            catch( Exception e) {
+                listener.getLogger().println(KsmCommon.errorPrefix + "The environmental variable " + entry.getKey() +
+                        " contains invalid syntax: " + e.getMessage());
+                return false;
+            }
+        }
+
+        // Process all the notation. This will connect to Secret Manager, get the record, get the value and will store
+        // the value in the item.
+        try {
+            query.run(notationItems);
+        }
+        catch(Exception e) {
+            listener.getLogger().println(KsmCommon.errorPrefix + "The environmental variable replace had pproblems: "
+                    + e.getMessage());
+            return false;
+        }
+
+        // Set the environmental variables values.
+        for(Map.Entry<String, KsmNotationItem> entry: notationItems.entrySet()) {
+            KsmNotationItem notationItem = entry.getValue();
+            envVars.put(entry.getKey(), notationItem.getValue());
         }
 
         return true;
@@ -142,7 +185,7 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
-        public FormValidation doCheck(@QueryParameter String value, @QueryParameter boolean useFrench) {
+        public FormValidation doCheck(@QueryParameter String value) {
             return FormValidation.ok();
         }
 

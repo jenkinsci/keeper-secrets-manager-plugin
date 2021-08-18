@@ -3,17 +3,20 @@ package io.jenkins.plugins.ksm.notation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-public class KsmNotationRequest {
+public class KsmNotationItem {
 
+    private String name;
     private String uid;
     private KsmFieldDataEnumType fieldDataType;
     private String fieldKey;
     private Boolean returnSingle;
     private Integer arrayIndex;
     private String dictKey;
+    private String value;
 
     @DataBoundConstructor
-    public KsmNotationRequest(
+    public KsmNotationItem(
+            String name,
             String uid,
             KsmFieldDataEnumType fieldDataType,
             String fieldKey,
@@ -28,6 +31,7 @@ public class KsmNotationRequest {
             arrayIndex = 0;
         }
 
+        this.name = name;
         this.uid = uid;
         this.fieldDataType = fieldDataType;
         this.fieldKey = fieldKey;
@@ -36,6 +40,9 @@ public class KsmNotationRequest {
         this.dictKey = dictKey;
     }
 
+    public String getName() {
+        return name;
+    }
     public String getUid() {
         return uid;
     }
@@ -54,7 +61,14 @@ public class KsmNotationRequest {
     public String getDictKey() {
         return dictKey;
     }
+    public String getValue() {
+        return value;
+    }
 
+    @DataBoundSetter
+    public void setName(String name) {
+        this.name = name;
+    }
     @DataBoundSetter
     public void setUid(String uid) {
         this.uid = uid;
@@ -78,5 +92,9 @@ public class KsmNotationRequest {
     @DataBoundSetter
     public void setDictKey(String dictKey) {
         this.dictKey = dictKey;
+    }
+    @DataBoundSetter
+    public void setValue(String value) {
+        this.value = value;
     }
 }

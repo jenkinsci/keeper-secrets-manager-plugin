@@ -1,6 +1,5 @@
 package io.jenkins.plugins.ksm.notation;
 
-import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.lang.SuppressWarnings;
@@ -11,28 +10,17 @@ public class KsmNotation {
     // A notation might start with a prefix, that will need to be removed. This is the that String prefix.
     public static final String notationPrefix = "keeper";
 
-    @SuppressWarnings("unused")
-    public static KsmNotationRequest parse(String notation) throws Exception {
+    public static KsmNotationItem find(String name, String notation) throws Exception {
 
-        /**
-         * Notation : A system of figures or symbols used in a specialized field to represent numbers, quantities, tones,
-         * or values
-         *
-         * <uid>/<field|custom_field|file>/<label|type>[INDEX][FIELD]
-         *
-         * Examples:
-         *
-         *  EG6KdJaaLG7esRZbMnfbFA/field/password                => MyPasswprd
-         *  EG6KdJaaLG7esRZbMnfbFA/field/password[0]             => MyPassword
-         *  EG6KdJaaLG7esRZbMnfbFA/field/password[]              => ["MyPassword"]
-         *  EG6KdJaaLG7esRZbMnfbFA/custom_field/name[first]      => John
-         *  EG6KdJaaLG7esRZbMnfbFA/custom_field/name[last]       => Smitht
-         *  EG6KdJaaLG7esRZbMnfbFA/custom_field/phone[0][number] => "555-5555555"
-         *  EG6KdJaaLG7esRZbMnfbFA/custom_field/phone[1][number] => "777-7777777"
-         *  EG6KdJaaLG7esRZbMnfbFA/custom_field/phone[]          => [{"number": "555-555...}, { "number": "777.....}]
-         *  EG6KdJaaLG7esRZbMnfbFA/custom_field/phone[0]         => [{"number": "555-555...}]
-         *
-         */
+        KsmNotationItem request = null;
+        if (notation.startsWith(notationPrefix)) {
+            request = parse(name, notation);
+        }
+        return request;
+    }
+
+    @SuppressWarnings("unused")
+    public static KsmNotationItem parse(String name, String notation) throws Exception {
 
         // If the notation starts with the notation prefix, normally used with env vars, remove it.
         if (notation.startsWith(notationPrefix)) {
@@ -115,7 +103,6 @@ public class KsmNotation {
            fieldKey = keyParts[0];
         }
 
-
-        return new KsmNotationRequest(uid, fieldDataType, fieldKey, returnSingle, index, dictKey);
+        return new KsmNotationItem(name, uid, fieldDataType, fieldKey, returnSingle, index, dictKey);
     }
 }

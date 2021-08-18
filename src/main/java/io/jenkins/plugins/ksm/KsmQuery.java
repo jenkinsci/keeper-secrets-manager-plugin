@@ -1,107 +1,80 @@
 package io.jenkins.plugins.ksm;
 
-import java.util.List;
-import java.util.HashMap;
-import java.util.Arrays;
-
-//import com.keepersecurity.secretsManager.core.LocalConfigStorage;
-//import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
-//import com.keepersecurity.secretsManager.core.SecretsManager;
-//import com.keepersecurity.secretsManager.core.KeeperRecord;
-//import com.keepersecurity.secretsManager.core.KeeperSecrets;
 import com.keepersecurity.secretsManager.core.*;
+import static com.keepersecurity.secretsManager.core.SecretsManager.*;
+import io.jenkins.plugins.ksm.credential.KsmCredential;
+import io.jenkins.plugins.ksm.notation.KsmNotationItem;
 
-import io.jenkins.plugins.ksm.notation.KsmNotation;
-import io.jenkins.plugins.ksm.notation.KsmNotationRequest;
-import io.jenkins.plugins.ksm.notation.KsmFieldDataEnumType;
+import java.util.*;
 
-import java.lang.reflect.*;
+import hudson.util.Secret;
+
 
 public class KsmQuery {
 
-    private final SecretsManagerOptions options;
+    KsmCredential credential;
 
-    // A simple cache by UID
-    private HashMap<String, KeeperRecord> lookup;
+    public KsmQuery(KsmCredential credential) {
+        this.credential = credential;
+    }
 
-    public KsmQuery(String clientKey, String hostName, String clientId, String privateKey, String appKey ) {
+    public void run(Map<String, KsmNotationItem> requests) throws Exception {
 
+        // Find all the unique record UIDs in the requests.
+        Set<String> uniqueUids = new HashSet<>();
+        for(Map.Entry<String, KsmNotationItem> entry: requests.entrySet()) {
+            uniqueUids.add(entry.getValue().getUid());
+        }
+
+        // Set up our creds to the secrets manager.
         LocalConfigStorage storage = new LocalConfigStorage();
-        storage.saveString("clientKey", clientKey);
-        storage.saveString("hostname", hostName);
-        storage.saveString("clientId", clientId);
-        storage.saveString("privateKey", privateKey);
-        storage.saveString("appKey", appKey);
+        storage.saveString("clientKey", Secret.toString(credential.getClientKey()));
+        storage.saveString("clientId", Secret.toString(credential.getClientId()));
+        storage.saveString("privateKey", Secret.toString(credential.getPrivateKey()));
+        storage.saveString("publicKey", Secret.toString(credential.getPublicKey()));
+        storage.saveString("appKey", Secret.toString(credential.getAppKey()));
+        initializeStorage(storage, Secret.toString(credential.getClientKey()), credential.getHostname());
 
-        options = new SecretsManagerOptions(storage);
-    }
+        // Query the unique record ids.
+        SecretsManagerOptions options = new SecretsManagerOptions(storage);
+        KeeperSecrets secrets = SecretsManager.getSecrets(options, new ArrayList<>(uniqueUids));
 
-    public SecretsManagerOptions getOptions() {
-        return options;
-    }
-
-    public void query(String[] uids) {
-
-        // Make sure we have a unique list of UIDs
-        HashMap<String, String> tempHm = new HashMap<String, String>();
-        for(String uid: uids) {
-            tempHm.put(uid, uid);
-        }
-        String[] uniqueIds = tempHm.keySet().toArray(new String[0]);
-
-        KeeperSecrets secrets = SecretsManager.getSecrets(options, Arrays.asList(uniqueIds));
-
-        lookup.clear();
-        for (KeeperRecord record: secrets.getRecords()) {
-            lookup.put(record.getRecordUid(), record);
-        }
-    }
-
-    public int count() {
-        return lookup.size();
-    }
-
-    public KeeperRecord getRecord(String uid) {
-        return lookup.get(uid);
-    }
-
-    private void getField(KeeperRecord record, String fieldTypeName) {
-
-        String className = "";
-        String getter = "";
-        switch (fieldTypeName) {
-            case "password":
-                className = "Password";
-                getter = "getPassword";
-                break;
-            case "login":
-                className = "Login";
-                getter = "getLogin";
-                break;
-        }
-        try {
-            Class c = Class.forName(className);
-            Object value = c.getMethod(getter).invoke(record);
-        } catch (Throwable e) {
-            // Nothing
-        }
-    }
-
-    public void getValueWithNotation(KsmNotationRequest request) throws Exception {
-
-        KeeperRecord record = getRecord(request.getUid());
-        if ( record == null ) {
-            throw new Exception("Cannot find record for Uid " + request.getUid());
+        // Place the secret into a lookup map using their Uid as the key.
+        Map<String, KeeperRecord> secretMap = new HashMap<>();
+        for(KeeperRecord secret: secrets.getRecords()) {
+            secretMap.put(secret.getRecordUid(), secret);
         }
 
-        Object[] value = {};
-        switch( request.getFieldDataType() ) {
-            case STANDARD:
-                break;
-            case CUSTOM:
-                break;
-            case FILE:
-                break;
+        KsmRecordField recordField = new KsmRecordField();
+
+        for(Map.Entry<String, KsmNotationItem> entry: requests.entrySet()) {
+            KsmNotationItem request = entry.getValue();
+            KeeperRecord record = secretMap.get(request.getUid());
+
+            String fieldKey = request.getFieldKey();
+            String dictKey = request.getDictKey();
+
+            // If we want to entire value, set the index to -1
+            Integer arrayIndex = request.getArrayIndex();
+            if ( !request.getReturnSingle()) {
+                arrayIndex = -1;
+            }
+
+            switch (request.getFieldDataType()) {
+                case STANDARD:
+                    request.setValue(recordField.getStandardFieldValue(record, fieldKey, arrayIndex, dictKey));
+                    break;
+                case CUSTOM:
+                    request.setValue(recordField.getCustomFieldValue(record, fieldKey, arrayIndex, dictKey));
+                    break;
+                case FILE:
+                    KeeperFile file = record.getFileByName(fieldKey);
+                    if (file != null) {
+                        byte[] fileBytes = downloadFile(file);
+                        request.setValue(Arrays.toString(fileBytes));
+                    }
+                    break;
+            }
         }
     }
 }

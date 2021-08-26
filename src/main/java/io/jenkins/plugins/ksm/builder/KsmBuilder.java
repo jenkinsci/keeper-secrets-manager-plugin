@@ -15,23 +15,17 @@ import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmNotationItem;
 import jenkins.tasks.SimpleBuildStep;
-
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import org.kohsuke.stapler.QueryParameter;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.kohsuke.stapler.AncestorInPath;
 import javax.annotation.Nonnull;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import io.jenkins.plugins.ksm.KsmSecret;
 import io.jenkins.plugins.ksm.KsmQuery;
 
@@ -85,6 +79,9 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
         if (credential == null) {
             throw new AbortException(KsmCommon.errorPrefix + "Cannot find the credential id " + credentialsId + ".");
         }
+        if (!credential.getCredentialError().equals("")) {
+            throw new AbortException(KsmCommon.errorPrefix + "Credential id " + credentialsId + " has errors associated with it. Cannot not use.");
+        }
 
         Map<String, KsmNotationItem> notationItems = new HashMap<>();
         KsmQuery query = new KsmQuery(credential);
@@ -106,10 +103,10 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
         // Find any default env vars using the Keeper notation.
         for(Map.Entry<String, String> entry: env.entrySet()) {
             try {
-                LOGGER.log(Level.FINE, "Checking global env var " + entry.getKey() + " for notation.");
                 KsmNotationItem item = KsmNotation.find(entry.getKey(), entry.getValue(), true);
                 if (item != null) {
-                    LOGGER.log(Level.FINE, " * found " + entry.getValue());
+                    LOGGER.log(Level.FINE, "Found a global env var " + entry.getValue() + " with value " +
+                            entry.getValue());
                     notationItems.put(entry.getKey(), item);
                 }
             }
@@ -137,7 +134,6 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
             // Only set env vars that did not have an error when the notation was being parsed. We might allow
             // these variable to fail, we just don't want to set them when they do.
             if ( notationItem.getError() == null ) {
-
                 try {
                     ksmEnvVars.put(entry.getKey(), notationItem.getValue());
                 }
@@ -172,10 +168,6 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
     @Symbol("greet")
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
-        public FormValidation doCheck(@QueryParameter String value) {
-            return FormValidation.ok();
-        }
 
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {

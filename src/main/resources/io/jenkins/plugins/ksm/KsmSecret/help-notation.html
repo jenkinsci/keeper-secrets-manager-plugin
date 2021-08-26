@@ -104,9 +104,9 @@
         ],
         "files": [
             {
-                "name": "orm.png",
-                "title": "orm.png",
-                "type": "image/png",
+                "name": "orm.svg",
+                "title": "orm.svg",
+                "type": "mage/svg+xml",
                 "last_modified": 1622044028400,
                 "size": 30744
             },
@@ -153,8 +153,8 @@
     Some values are dictionaries. For example the phone and host fields.
 </p>
 <code>
-    keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/phone[1][number]
-    keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/host[hostName]
+    keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/phone[1][number]<br/>
+    keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/host[hostName]<br/>
 </code>
 <p>
     To get the specific value in the dictionary, add the key to the notation.
@@ -173,4 +173,12 @@
 <code>
     [{"number": "555-5555555", "ext": "55", "type": "Work"}, {"number": "777-7777777", "ext": "77", type": "Home"}]
 </code>
-
+<h4>Example 4 - Files</h4>
+<p>
+    With notation, you can download files into an environmental variables. This works well with text based files, however
+    mileage may var with binary files. Binary files may cause exceptions to be thrown. Also there is a limit on the size
+    of the file based on your OS's handling of environmental variables.
+</p>
+<code>
+    keeper://Atu8tVgMxpB-iO4xT-Vu3Q/file/orm.svg
+</code>

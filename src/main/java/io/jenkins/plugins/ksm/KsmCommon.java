@@ -8,10 +8,11 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import org.json.simple.JSONObject;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Base64;
-import java.nio.charset.Charset;
 
 public class KsmCommon {
 
@@ -20,12 +21,14 @@ public class KsmCommon {
     public static final String configDescPrefix = "KSM_CONFIG_BASE64_DESC_";
     public static final String configCountKey = "KSM_CONFIG_COUNT";
 
+    // Using ACL.SYSTEM, the cred stuff doesn't support ACL.SYSTEM2 yet.
+    // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider supports it.
+    @SuppressWarnings("deprecation")
     public static ListBoxModel buildCredentialsIdListBox(ItemGroup<?> context) {
 
         final ListBoxModel items = new ListBoxModel();
 
-        // Using ACL.SYSTEM, the cred stuff doesn't support ACL.SYSTEM2 yet.
-        // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider supports it.
+
         List<KsmCredential> ksmCredentials = CredentialsProvider.lookupCredentials(
                 KsmCredential.class,
                 context,
@@ -33,11 +36,16 @@ public class KsmCommon {
                 Collections.emptyList()
         );
         for (KsmCredential item : ksmCredentials) {
-            items.add(item.getDescription(), item.getId());
+            String name = item.getDescription();
+            if (name.equals("")) {
+                name = item.getId();
+            }
+            items.add(name, item.getId());
         }
         return items;
     }
 
+    @SuppressWarnings("unchecked")
     public static void addCredentialToEnv(KsmCredential credential, EnvVars newEnvVars, EnvVars existingEnvVars) {
 
         if (credential.allowConfigInject()) {
@@ -60,7 +68,7 @@ public class KsmCommon {
             obj.put("appKey", Secret.toString(credential.getAppKey()));
             obj.put("hostname", credential.getHostname());
             String json = obj.toJSONString();
-            String configBase64 = Base64.getEncoder().encodeToString(json.getBytes(Charset.forName("UTF-8")));
+            String configBase64 = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
             // Place the config and desc into the env var
             newEnvVars.put(configCountKey, String.valueOf(configCount));

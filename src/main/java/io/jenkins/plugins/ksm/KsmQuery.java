@@ -23,15 +23,44 @@ public class KsmQuery {
         this.credential = credential;
     }
 
-    private static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname) {
+    private static String handleException(Exception  e) {
+
+        String msg = e.getMessage();
+
+        // See if this is one of our error message
+        try {
+            JSONParser jsonParser = new JSONParser();
+            JSONObject obj = (JSONObject) jsonParser.parse(msg);
+            msg = (String) obj.get("message");
+        }
+        catch(ParseException ignore ){
+            // Don't do anything. Keep msg the same.
+        }
+
+        return msg;
+    }
+
+    public static LocalConfigStorage redeemToken(String token, String hostname) throws Exception {
+
+        logger.log(Level.FINE, "Setting up the secrets manager options");
 
         LocalConfigStorage storage = new LocalConfigStorage();
-        storage.saveString("clientId", clientId.trim());
-        storage.saveString("privateKey", privateKey.trim());
-        storage.saveString("appKey", appKey.trim());
+        try {
+            SecretsManager.initializeStorage(storage, token, getHostname(hostname.trim()));
+            SecretsManagerOptions options = new SecretsManagerOptions(storage);
+            KeeperSecrets secrets = SecretsManager.getSecrets(options);
+            List<KeeperRecord> records= secrets.getRecords();
+            logger.log(Level.FINE, "Found " + records.size() + " records with token redemption.");
+        }
+        catch(Exception e) {
+            logger.log(Level.WARNING, "Redeeming token resulted in error: " + e.getMessage());
+            throw new Exception("Cannot initialize token: " + handleException(e));
+        }
+        return storage;
+    }
 
+    private static String getHostname(String hostname) {
         // Allow for aliases.
-        hostname = hostname.trim();
         switch(hostname) {
             case "US": hostname="keepersecurity.com"; break;
             case "EU": hostname="keepersecurity.eu"; break;
@@ -41,7 +70,16 @@ public class KsmQuery {
                 // nothing
         }
 
-        storage.saveString("hostname", hostname);
+        return hostname;
+    }
+
+    private static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname) {
+
+        LocalConfigStorage storage = new LocalConfigStorage();
+        storage.saveString("clientId", clientId.trim());
+        storage.saveString("privateKey", privateKey.trim());
+        storage.saveString("appKey", appKey.trim());
+        storage.saveString("hostname", getHostname(hostname.trim()));
 
         logger.log(Level.FINE, "Setting up the secrets manager options");
 
@@ -61,21 +99,8 @@ public class KsmQuery {
             logger.log(Level.FINE, "Found " + records.size() + " records");
         }
         catch(Exception e) {
-            String msg = e.getMessage();
-
             logger.log(Level.WARNING, "Testing credentials resulted in an error: " + e.getMessage());
-
-            // See if this is one of our error message
-            try {
-                JSONParser jsonParser = new JSONParser();
-                JSONObject obj = (JSONObject) jsonParser.parse(msg);
-                msg = (String) obj.get("message");
-            }
-            catch(ParseException ignore ){
-                // Don't do anything. Keep msg the same.
-            }
-
-            return "Validation of the credentials resulted in an error: " + msg;
+            return "Validation of the credentials resulted in an error: " + handleException(e);
         }
 
         return null;

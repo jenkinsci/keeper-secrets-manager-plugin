@@ -7,8 +7,8 @@ public class KSMNotationTest {
     public void testSmokeTest() {
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password", false);
-            Assert.assertEquals("XXXX", result.getUid());
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://A_7YpGBUgRTeDEQLhVRo0Q/field/password", false);
+            Assert.assertEquals("A_7YpGBUgRTeDEQLhVRo0Q", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.STANDARD, result.getFieldDataType());
             Assert.assertEquals("password", result.getFieldKey());
             Assert.assertEquals(Boolean.TRUE, result.getReturnSingle());
@@ -19,8 +19,8 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password[0]", false);
-            Assert.assertEquals("XXXX", result.getUid());
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://A_7YpGBUgRTeDEQLhVRo0Q/field/password[0]", false);
+            Assert.assertEquals("A_7YpGBUgRTeDEQLhVRo0Q", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.STANDARD, result.getFieldDataType());
             Assert.assertEquals("password", result.getFieldKey());
             Assert.assertEquals(Boolean.TRUE, result.getReturnSingle());
@@ -31,8 +31,8 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/field/password[]", false);
-            Assert.assertEquals("XXXX", result.getUid());
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://A_7YpGBUgRTeDEQLhVRo0Q/field/password[]", false);
+            Assert.assertEquals("A_7YpGBUgRTeDEQLhVRo0Q", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.STANDARD, result.getFieldDataType());
             Assert.assertEquals("password", result.getFieldKey());
             Assert.assertEquals(Boolean.FALSE, result.getReturnSingle());
@@ -43,8 +43,8 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC","keeper://XXXX/custom_field/name[first]", false);
-            Assert.assertEquals("XXXX", result.getUid());
+            KsmNotationItem result = KsmNotation.parse("ABC","keeper://A_7YpGBUgRTeDEQLhVRo0Q/custom_field/name[first]", false);
+            Assert.assertEquals("A_7YpGBUgRTeDEQLhVRo0Q", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.CUSTOM, result.getFieldDataType());
             Assert.assertEquals("name", result.getFieldKey());
             Assert.assertEquals(Boolean.TRUE, result.getReturnSingle());
@@ -55,8 +55,8 @@ public class KSMNotationTest {
         }
 
         try {
-            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://XXXX/custom_field/name[2][last]", false);
-            Assert.assertEquals("XXXX", result.getUid());
+            KsmNotationItem result = KsmNotation.parse("ABC", "keeper://A_7YpGBUgRTeDEQLhVRo0Q/custom_field/name[2][last]", false);
+            Assert.assertEquals("A_7YpGBUgRTeDEQLhVRo0Q", result.getUid());
             Assert.assertEquals(KsmFieldDataEnumType.CUSTOM, result.getFieldDataType());
             Assert.assertEquals("name", result.getFieldKey());
             Assert.assertEquals(Boolean.TRUE, result.getReturnSingle());

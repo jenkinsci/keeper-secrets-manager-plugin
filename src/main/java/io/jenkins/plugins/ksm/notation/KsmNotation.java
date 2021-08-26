@@ -35,8 +35,24 @@ public class KsmNotation {
         if ( notationParts.length < 3 ) {
             throw new Exception("Notation format appears to be missing values. There should be 3 values separated by a '/' character.");
         }
+        if ( notationParts.length > 3 ) {
+            String msg = "Notation format appears to contain too many values. There should be 3 values separated by a '/' character.";
+
+            // There could be a change the keeper:// is misspelled.
+            if (notation.startsWith(notationPrefix.substring(0,1))) {
+                msg += "  The keeper:// prefix might be misspelled.";
+            }
+            throw new Exception(msg);
+        }
         String uid = notationParts[0];
+        if (uid.length() != 22) {
+            throw new Exception("The record uid is not the correct length.");
+        }
+
         KsmFieldDataEnumType fieldDataType = KsmFieldDataEnumType.getEnumByString(notationParts[1]);
+        if (fieldDataType == null) {
+            throw new Exception("The field type can only be field, custom_field, or file. The field type of " + notationParts[1] + " is invalid.");
+        }
         String fieldKey = notationParts[2];
 
         Boolean returnSingle = Boolean.TRUE;

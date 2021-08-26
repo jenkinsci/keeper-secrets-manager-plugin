@@ -3,6 +3,7 @@ package io.jenkins.plugins.ksm.workflow;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.AbortException;
 import hudson.model.Item;
 import hudson.security.ACL;
 import io.jenkins.plugins.ksm.KsmCommon;
@@ -118,6 +119,9 @@ public class KsmStep extends Step {
                 if (credential == null) {
                     throw new Exception(KsmCommon.errorPrefix + "Cannot find the credential id " + credentialsId);
                 }
+                if (!credential.getCredentialError().equals("")) {
+                    throw new AbortException(KsmCommon.errorPrefix + "Credential id " + credentialsId + " has errors associated with it. Cannot not use.");
+                }
 
                 Map<String, KsmNotationItem> notationItems = new HashMap<String, KsmNotationItem>();
                 KsmQuery query = new KsmQuery(credential);
@@ -194,7 +198,7 @@ public class KsmStep extends Step {
                 this.envVars = envVars;
             }
 
-            @Override protected void finished(StepContext context) throws Exception {
+            @Override protected void finished(StepContext context) {
                 new Callback(envVars).finished(context);
             }
         }
@@ -211,7 +215,7 @@ public class KsmStep extends Step {
         }
 
         @Override
-        public void expand(@NonNull EnvVars env) throws IOException, InterruptedException {
+        public void expand(@NonNull EnvVars env) {
             for (HashMap.Entry<String,String> envVar : envVars.entrySet()) {
                 env.override(envVar.getKey(), envVar.getValue());
             }

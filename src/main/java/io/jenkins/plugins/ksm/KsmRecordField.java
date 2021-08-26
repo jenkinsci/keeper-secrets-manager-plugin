@@ -64,7 +64,9 @@ public class KsmRecordField {
 
         KeeperRecordField foundField = null;
         try {
-            Class<?> fieldClass = getFieldTypeClass(fieldType);
+            // The JSON has lowercase types, however the Web UI has mixed case. Just lowercase
+            // the field type for the standard field.
+            Class<?> fieldClass = getFieldTypeClass(fieldType.toLowerCase(Locale.ROOT));
 
             KeeperRecordData data = record.getData();
             for (KeeperRecordField item : data.getFields()) {

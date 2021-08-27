@@ -124,6 +124,8 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
         catch(Exception e) {
             throw new AbortException(KsmCommon.errorPrefix + "The environmental variable replace had problems: "
                     + e.getMessage());
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
 
         // Set the environmental variables values.

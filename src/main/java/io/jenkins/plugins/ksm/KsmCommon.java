@@ -48,7 +48,7 @@ public class KsmCommon {
     @SuppressWarnings("unchecked")
     public static void addCredentialToEnv(KsmCredential credential, EnvVars newEnvVars, EnvVars existingEnvVars) {
 
-        if (credential.allowConfigInject()) {
+        if (credential.getAllowConfigInject()) {
 
             // Find the current config count from the existing env var and increment it
             String configCountStr = existingEnvVars.get(configCountKey);
@@ -70,10 +70,16 @@ public class KsmCommon {
             String json = obj.toJSONString();
             String configBase64 = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
+            // Get the credential's description. If blank, make one based on the config #.
+            String description = credential.getDescription();
+            if (description.equals("")) {
+                description = "CONFIG_PROFILE_" + configCount;
+            }
+
             // Place the config and desc into the env var
             newEnvVars.put(configCountKey, String.valueOf(configCount));
             newEnvVars.put(configPrefix + configCount, configBase64);
-            newEnvVars.put(configDescPrefix + configCount, credential.getDescription());
+            newEnvVars.put(configDescPrefix + configCount, description);
 
             if (credential.getUseSkipSslVerification()) {
                 newEnvVars.put("KSM_SKIP_VERIFY", "True");

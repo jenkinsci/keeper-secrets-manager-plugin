@@ -2,8 +2,9 @@ package io.jenkins.plugins.ksm;
 
 import com.keepersecurity.secretsManager.core.*;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
+import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmNotationItem;
-import java.nio.charset.StandardCharsets;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.*;
@@ -73,7 +74,7 @@ public class KsmQuery {
         return hostname;
     }
 
-    private static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname) {
+    public static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname) {
 
         LocalConfigStorage storage = new LocalConfigStorage();
         storage.saveString("clientId", clientId.trim());
@@ -106,13 +107,7 @@ public class KsmQuery {
         return null;
     }
 
-    public void run(Map<String, KsmNotationItem> requests) throws Exception {
-
-        // Find all the unique record UIDs in the requests.
-        Set<String> uniqueUids = new HashSet<>();
-        for(Map.Entry<String, KsmNotationItem> entry: requests.entrySet()) {
-            uniqueUids.add(entry.getValue().getUid());
-        }
+    public void run(Map<String, KsmNotationItem> items) throws Throwable {
 
         SecretsManagerOptions options = getOptions(
                 Secret.toString(credential.getClientId()),
@@ -120,54 +115,6 @@ public class KsmQuery {
                 Secret.toString(credential.getAppKey()),
                 credential.getHostname());
 
-        // Query the unique record ids.
-        KeeperSecrets secrets = SecretsManager.getSecrets(options, new ArrayList<>(uniqueUids));
-
-        // Place the secret into a lookup map using their Uid as the key.
-        Map<String, KeeperRecord> secretMap = new HashMap<>();
-        for(KeeperRecord secret: secrets.getRecords()) {
-            secretMap.put(secret.getRecordUid(), secret);
-        }
-
-        KsmRecordField recordField = new KsmRecordField();
-
-        for(Map.Entry<String, KsmNotationItem> entry: requests.entrySet()) {
-            KsmNotationItem request = entry.getValue();
-            KeeperRecord record = secretMap.get(request.getUid());
-
-            String fieldKey = request.getFieldKey();
-            String dictKey = request.getDictKey();
-
-            // If we want to entire value, set the index to -1
-            Integer arrayIndex = request.getArrayIndex();
-            if ( !request.getReturnSingle()) {
-                arrayIndex = -1;
-            }
-
-            try {
-                request.clearError();
-                switch (request.getFieldDataType()) {
-                    case STANDARD:
-                        request.setValue(recordField.getStandardFieldValue(record, fieldKey, arrayIndex, dictKey));
-                        break;
-                    case CUSTOM:
-                        request.setValue(recordField.getCustomFieldValue(record, fieldKey, arrayIndex, dictKey));
-                        break;
-                    case FILE:
-                        KeeperFile file = record.getFileByName(fieldKey);
-                        if (file != null) {
-                            byte[] fileBytes = SecretsManager.downloadFile(file);
-                            request.setValue(new String(fileBytes, StandardCharsets.UTF_8));
-                        }
-                        break;
-                }
-            }
-            catch(Exception e) {
-                request.setError(e.toString());
-                if (!request.getAllowFailure()) {
-                    throw new Exception("For environment variable " + request.getName() + ", " + request.getNotation() + ": ");
-                }
-            }
-        }
+        KsmNotation.run(items, options);
     }
 }

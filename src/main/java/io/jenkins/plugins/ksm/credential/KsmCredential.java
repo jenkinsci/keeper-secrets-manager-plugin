@@ -11,6 +11,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
+import java.util.Locale;
+
 public class KsmCredential extends BaseStandardCredentials {
 
     private String token;
@@ -19,18 +21,21 @@ public class KsmCredential extends BaseStandardCredentials {
     private Secret appKey;
     private String hostname;
     private boolean useSkipSslVerification;
-    private String keyId;
+    private String publicKeyId;
     private boolean allowConfigInject;
+
+    public final static String tokenErrorPrefix = "Error:";
 
     @DataBoundConstructor
     public KsmCredential(CredentialsScope scope, String id, String description,
                          String token,
                          Secret clientId, Secret privateKey, Secret appKey,
-                         String hostname, boolean useSkipSslVerification, String keyId, boolean allowConfigInject) throws Exception {
+                         String hostname,
+                         boolean useSkipSslVerification, String publicKeyId, boolean allowConfigInject) throws Exception {
         super(scope, id, description);
 
-        // If the token is not blank, redeem the token.
-        if (!token.trim().equals("")){
+        // If the token is not blank, or already an error, redeem the token.
+        if (!token.trim().equals("") && (!token.trim().startsWith(KsmCredential.tokenErrorPrefix))){
             try {
                 LocalConfigStorage storage = KsmQuery.redeemToken(token, hostname);
                 clientId = Secret.fromString(storage.getString("clientId"));
@@ -42,7 +47,7 @@ public class KsmCredential extends BaseStandardCredentials {
 
                 // Why do this? Need a way to show the error. We can't throw an error or Jenkins will go to a 500
                 // error message page. Only way is to store the error in the token ... until we find a better way.
-                token = "Error: " + e.getMessage();
+                token = tokenErrorPrefix + " " + e.getMessage();
             };
         }
 
@@ -60,8 +65,8 @@ public class KsmCredential extends BaseStandardCredentials {
         this.privateKey = privateKey;
         this.appKey = appKey;
         this.hostname = hostname.trim();
-        this.useSkipSslVerification =useSkipSslVerification;
-        this.keyId = keyId.trim();
+        this.useSkipSslVerification = useSkipSslVerification;
+        this.publicKeyId = publicKeyId.trim();
         this.allowConfigInject = allowConfigInject;
     }
 
@@ -83,10 +88,10 @@ public class KsmCredential extends BaseStandardCredentials {
     public boolean getUseSkipSslVerification() {
         return useSkipSslVerification;
     }
-    public String getKeyId() {
-        return keyId;
+    public String getPublicKeyId() {
+        return publicKeyId;
     }
-    public boolean allowConfigInject() {
+    public boolean getAllowConfigInject() {
         return allowConfigInject;
     }
 
@@ -99,6 +104,35 @@ public class KsmCredential extends BaseStandardCredentials {
         @Override
         public String getDisplayName() {
             return "Keeper Secrets Manager";
+        }
+
+        // If the token has the start with "Error" then there was a problem with the token. The field
+        // token will have the actual error.
+        public FormValidation doCheckToken(@QueryParameter String token) {
+            if(token.startsWith(KsmCredential.tokenErrorPrefix)) {
+                return FormValidation.error("There appears to be an error with the token.");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckHostname(@QueryParameter String hostname) {
+            if(hostname.trim().equals("")) {
+                return FormValidation.error("Hostname cannot be blank.");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckPublicKeyId(@QueryParameter String publicKeyId) {
+            if(!(publicKeyId.trim().equals(""))) {
+                try {
+                    Integer.parseInt(publicKeyId.trim());
+                    // Would love to check if key id is in range, however it's private. So it passes.
+                }
+                catch(NumberFormatException e) {
+                    return FormValidation.error("The public key id needs to be a whole number.");
+                }
+            }
+            return FormValidation.ok();
         }
 
         @POST

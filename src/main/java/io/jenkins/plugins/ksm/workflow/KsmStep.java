@@ -49,7 +49,7 @@ public class KsmStep extends Step {
     }
 
     @Override
-    public StepExecution start(StepContext context) throws Exception {
+    public StepExecution start(StepContext context) {
         return new Execution(this, context);
     }
 
@@ -64,7 +64,7 @@ public class KsmStep extends Step {
         }
 
         @Override
-        public boolean start() throws Exception {
+        public boolean start() {
             run(this::doStart);
             return false;
         }
@@ -78,9 +78,10 @@ public class KsmStep extends Step {
             assert listener != null;
             EnvVars existingEnvVars = getContext().get(EnvVars.class);
 
-            // Find any env vars using the Keeper notation. This might be set on a node, load in a prior build step,
+            // Find any global env vars using the Keeper notation. This might be set on a node, load in a prior build step,
             // come from another env var plugin, etc. These are ones not from the Keeper plugin. The problem is we
-            // are not sure which application contains the record.
+            // are not sure which application contains the record. Try them with each application, remove it from the
+            // list if we find it. At the end if any exists, those are errors.
             Map<String, KsmNotationItem> globalNotationItems = new HashMap<String, KsmNotationItem>();
             if (existingEnvVars != null) {
                 for (Map.Entry<String, String> entry : existingEnvVars.entrySet()) {
@@ -92,7 +93,7 @@ public class KsmStep extends Step {
                             globalNotationItems.put(entry.getKey(), item);
                         }
                     } catch (Exception e) {
-                        throw new Exception(KsmCommon.errorPrefix + "The global environmental variable " + entry.getKey() +
+                        throw new AbortException(KsmCommon.errorPrefix + "The global environmental variable " + entry.getKey() +
                                 " contains invalid syntax: " + e.getMessage());
                     }
                 }
@@ -117,13 +118,13 @@ public class KsmStep extends Step {
                 KsmCredential credential = CredentialsMatchers.firstOrNull(credentials,
                         CredentialsMatchers.withId(credentialsId));
                 if (credential == null) {
-                    throw new Exception(KsmCommon.errorPrefix + "Cannot find the credential id " + credentialsId);
+                    throw new AbortException(KsmCommon.errorPrefix + "Cannot find the credential id " + credentialsId);
                 }
                 if (!credential.getCredentialError().equals("")) {
                     throw new AbortException(KsmCommon.errorPrefix + "Credential id " + credentialsId + " has errors associated with it. Cannot not use.");
                 }
 
-                Map<String, KsmNotationItem> notationItems = new HashMap<String, KsmNotationItem>();
+                Map<String, KsmNotationItem> notationItems = new HashMap<>();
                 KsmQuery query = new KsmQuery(credential);
 
                 for(KsmSecret secret : application.getSecrets()) {
@@ -133,7 +134,7 @@ public class KsmStep extends Step {
                         notationItems.put(secret.getEnvVar(), notationItem);
                     }
                     catch(Exception e) {
-                        throw new Exception(KsmCommon.errorPrefix + "Could not replace env var " + secret.getEnvVar() +
+                        throw new AbortException(KsmCommon.errorPrefix + "Could not replace env var " + secret.getEnvVar() +
                                 ":" + e.getMessage());
                     }
                 }
@@ -146,24 +147,26 @@ public class KsmStep extends Step {
                     query.run(notationItems);
                 }
                 catch(Exception e) {
-                    throw new Exception(KsmCommon.errorPrefix + "The environmental variable replace had problems: "
+                    throw new AbortException(KsmCommon.errorPrefix + "The environmental variable replace had problems: "
                             + e.getMessage());
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
                 }
 
                 // Set the environmental variables values from global. These are allowed to fail.
+                List<String> removeList = new ArrayList<>();
                 for(Map.Entry<String, KsmNotationItem> entry: globalNotationItems.entrySet()) {
                     KsmNotationItem notationItem = entry.getValue();
+
                     if (notationItem.getError() == null) {
                         envVars.put(entry.getKey(), notationItem.getValue());
+
+                        // Since we got a value, and set it, remove it from the list.
+                        removeList.add(entry.getKey());
                     }
-                    else {
-                        String msg = "The env var " + entry.getKey() + " notation "  + notationItem.getNotation()
-                                + " could not be found for credential id " + credentialsId + ". It may have been found"
-                                + " for another credential, if you are using multiple credentials: "
-                                + notationItem.getError();
-                        listener.getLogger().println(msg);
-                        LOGGER.log(Level.INFO, msg);
-                    }
+                }
+                for (String s : removeList) {
+                    globalNotationItems.remove(s);
                 }
 
                 // Set the environmental variables values from workflow.
@@ -178,6 +181,17 @@ public class KsmStep extends Step {
                 KsmCommon.addCredentialToEnv(credential, envVars, envVars);
             }
 
+            // Abort if anything exists in the global notation list. These would be item that could not be found.
+            for(Map.Entry<String, KsmNotationItem> entry: globalNotationItems.entrySet()) {
+                KsmNotationItem notationItem = entry.getValue();
+                String msg = "The global environmental variable " + entry.getKey() + ", notation "  + notationItem.getNotation()
+                        + ", could not be found for any of the credentials.";
+                if (notationItem.getError() != null) {
+                    msg += " " + notationItem.getError();
+                }
+                throw new AbortException(msg);
+            }
+
             getContext().newBodyInvoker().
                     withContext(
                             EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class),
@@ -188,6 +202,7 @@ public class KsmStep extends Step {
             LOGGER.log(Level.FINE, "Finishing Keeper Secrets Manager workflow step");
         }
 
+        // Apparently this is needed. Called with the withCallback. If removed, step won't finish.
         private final class doFinished extends TailCall {
 
             private static final long serialVersionUID = 1;
@@ -198,7 +213,8 @@ public class KsmStep extends Step {
                 this.envVars = envVars;
             }
 
-            @Override protected void finished(StepContext context) {
+            @Override
+            protected void finished(StepContext context) {
                 new Callback(envVars).finished(context);
             }
         }

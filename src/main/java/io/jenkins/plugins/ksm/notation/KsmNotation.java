@@ -1,5 +1,8 @@
 package io.jenkins.plugins.ksm.notation;
 
+import com.keepersecurity.secretsManager.core.*;
+
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.lang.SuppressWarnings;
@@ -120,5 +123,51 @@ public class KsmNotation {
         }
 
         return new KsmNotationItem(name, notation, uid, fieldDataType, fieldKey, returnSingle, index, dictKey, allowFailure);
+    }
+
+    /**
+     * Run over the notation item and get their values
+     *
+     *
+     * @param items   list of notation items
+     * @param options connection information for Keeper Secrets Manager
+     * @throws Exception
+     */
+
+    public static void run(Map<String, KsmNotationItem> items, SecretsManagerOptions options) throws Throwable {
+
+        // Find all the unique record UIDs in the requests.
+        Set<String> uniqueUids = new HashSet<>();
+        for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
+            uniqueUids.add(entry.getValue().getUid());
+        }
+
+        // Query the unique record ids.
+        KeeperSecrets secrets = SecretsManager.getSecrets(options, new ArrayList<>(uniqueUids));
+
+        // Place the secret into a lookup map using their Uid as the key.
+        Map<String, KeeperRecord> secretMap = new HashMap<>();
+        for (KeeperRecord secret : secrets.getRecords()) {
+            secretMap.put(secret.getRecordUid(), secret);
+        }
+
+        KsmFieldParse recordField = new KsmFieldParse(options);
+
+        for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
+            KsmNotationItem item = entry.getValue();
+            KeeperRecord record = secretMap.get(item.getUid());
+
+            if ( record == null) {
+                String msg = "Cannot find record with uid " + item.getUid();
+                item.setError(msg);
+                if (!item.getAllowFailure()) {
+                    throw new Exception("For environment variable " + item.getName() + ", " + item.getNotation() + ": " +
+                            msg
+                    );
+                }
+                continue;
+            }
+            recordField.run(item, record);
+        }
     }
 }

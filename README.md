@@ -3,9 +3,9 @@
 ## Introduction
 
 This plugin allows you retrieve secrets from the [Keeper Secrets Manager](https://www.keepersecurity.com) and place the values 
-into environmental variables in the builder and pipeline.
+into environmental variables in the builder and workflow pipeline.
 
-## Getting started
+## Getting Started
 
 ### Getting Credentials
 
@@ -33,9 +33,10 @@ then select **Keeper Secrets Manager** in the **Kind** dropdown.
 Cut-n-paste the One Time Access Token into the UI field, set the Hostname, and save the credential. Upon saving
 the plugin will attempt to retrieve the required keys from the Keeper Secrets Manager server and populate them. When
 you open the credential again, the One Time Access Token should be blank and clicking the View Keys button will
-display your private and application key, and client id.
+display your private and application keys, and client id.
 
-You can set a **Description** of the credentials to make it easily found in other parts of Jenkins.
+You can set a **Description** of the credentials to make it easily found in other parts of Jenkins. Else the credential
+id will be shown.
 
 If there was a problem redeeming the One Time Access Token, the error message will appear in the One Time Access Token
 field.
@@ -49,6 +50,65 @@ build step will allow you select a credential and add multiple secrets.
 
 Per secret, an environmental variable name needs to be entered and [Keeper Notation](#keeper-notation) describing which
 field in a record should be used for the value of the environmental variable is required.
+
+When the step runs, the notation will be used to retrieve your secret, and the value placed into an environmental
+variable. If a problem occurs like the record not being found, or the fields is not found, the build will be aborted.
+The error can found in the console logging and also the system logging.
+
+The secret in the environmental variables will cascade to any following steps. For example, if you have
+an **Execute Shell** step, you can see the environmental variables.
+
+    #!/bin/bash
+    export
+
+    echo "My Login = ${MY_LOGIN}"
+
+When the build is done. The environmental variable, with the secrets, will be removed.
+
+### Pipeline Workflow
+
+Below is an example of a Jenkinfile using the Keeper Secrets Manager plugin.
+
+    pipeline {
+      agent any 
+      stages {
+        stage('Hello') {
+          steps {
+            withKsm(application: [
+              [
+                credentialsId: 'c7655790-7066-46c4-9301-32b7702c04eb',
+                secrets: [
+                  [envVar: 'MY_LOGIN', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/field/login'],
+                  [envVar: 'MY_PASSWORD', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/field/password'],
+                  [envVar: 'MY_SEC_PHONE_NUM', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/phone[1][number]'],
+                  [envVar: 'TOMCAT_CONFIG', notation: 'keeper://OIm1Rs-A1QyhIZMSPu6YoQ/file/server.xml']
+                ]
+              ]  
+            ]) {
+              sh'''
+                  echo "MY_LOGIN = ${MY_LOGIN}"
+                  echo "MY_PASSWORD = ${MY_PASSWORD}"
+                  echo "MY_SEC_PHONE_NUM = ${MY_SEC_PHONE_NUM}"
+                  echo "${TOMCAT_CONFIG}" > server.xml
+              '''
+            }
+          }
+        }
+      }
+    }
+
+The Keeper Secrets Manager snippet can be created using the **Pipeline Syntax** editor inside of Jenkins. Just select 
+**withKsm** from the **Sample Step** dropdown. You can then add an application, which will allow you to select the
+credentials and add secrets. You do have the option to add multiple applications, if all your secrets are not in the
+same application.
+
+When you are finished setting up your application, credentials, and secrets, you can click the **Generate Pipeline Script**.
+That will generate the **withKsm** block. This snippet can then be added to your Jenkinsfile.
+
+![](images/snippet.png)
+
+The environmental variables containing the secrets are only accessible within the withKsm block where they are defined. 
+Once you exit the block the secrets will be removed.
 
 ## Keeper Notation
 
@@ -142,20 +202,9 @@ To get the credit card number, the notation would look like this:
     keeper://jW8FGAqf02Rlm-N1dr4vkA/field/paymentCard[cardNumber]
 
 
-
-
 ## Issues
 
-TODO Decide where you're going to host your issues, the default is Jenkins JIRA, but you can also enable GitHub issues,
-If you use GitHub issues there's no need for this section; else add the following line:
-
 Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins-ci.org/).
-
-## Contributing
-
-TODO review the default [CONTRIBUTING](https://github.com/jenkinsci/.github/blob/master/CONTRIBUTING.md) file and make sure it is appropriate for your plugin, if not then add your own one adapted from the base file
-
-Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob/master/CONTRIBUTING.md)
 
 ## LICENSE
 

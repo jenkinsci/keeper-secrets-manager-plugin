@@ -1,0 +1,2 @@
+_extends: .github
+tag-template: keeper-secrets-manager-$NEXT_MINOR_VERSION

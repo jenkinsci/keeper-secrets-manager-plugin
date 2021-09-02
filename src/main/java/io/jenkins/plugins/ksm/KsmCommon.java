@@ -81,7 +81,7 @@ public class KsmCommon {
             newEnvVars.put(configPrefix + configCount, configBase64);
             newEnvVars.put(configDescPrefix + configCount, description);
 
-            if (credential.getUseSkipSslVerification()) {
+            if (credential.getSkipSslVerification()) {
                 newEnvVars.put("KSM_SKIP_VERIFY", "True");
             }
         }

@@ -3,11 +3,8 @@ package io.jenkins.plugins.ksm.builder;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.*;
 import hudson.model.*;
-
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-
-import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.ksm.KsmCommon;
 import io.jenkins.plugins.ksm.credential.KsmCredential;

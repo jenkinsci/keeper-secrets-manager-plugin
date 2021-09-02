@@ -1,6 +1,7 @@
 package io.jenkins.plugins.ksm.credential;
 
 import com.keepersecurity.secretsManager.core.LocalConfigStorage;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
@@ -11,8 +12,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-import java.util.Locale;
-
 public class KsmCredential extends BaseStandardCredentials {
 
     private String token;
@@ -20,8 +19,7 @@ public class KsmCredential extends BaseStandardCredentials {
     private Secret privateKey;
     private Secret appKey;
     private String hostname;
-    private boolean useSkipSslVerification;
-    private String publicKeyId;
+    private boolean skipSslVerification;
     private boolean allowConfigInject;
 
     public final static String tokenErrorPrefix = "Error:";
@@ -31,7 +29,7 @@ public class KsmCredential extends BaseStandardCredentials {
                          String token,
                          Secret clientId, Secret privateKey, Secret appKey,
                          String hostname,
-                         boolean useSkipSslVerification, String publicKeyId, boolean allowConfigInject) throws Exception {
+                         boolean skipSslVerification, boolean allowConfigInject) {
         super(scope, id, description);
 
         // If the token is not blank, or already an error, redeem the token.
@@ -48,7 +46,7 @@ public class KsmCredential extends BaseStandardCredentials {
                 // Why do this? Need a way to show the error. We can't throw an error or Jenkins will go to a 500
                 // error message page. Only way is to store the error in the token ... until we find a better way.
                 token = tokenErrorPrefix + " " + e.getMessage();
-            };
+            }
         }
 
         // If keys are set, make sure token is blank.
@@ -65,8 +63,7 @@ public class KsmCredential extends BaseStandardCredentials {
         this.privateKey = privateKey;
         this.appKey = appKey;
         this.hostname = hostname.trim();
-        this.useSkipSslVerification = useSkipSslVerification;
-        this.publicKeyId = publicKeyId.trim();
+        this.skipSslVerification = skipSslVerification;
         this.allowConfigInject = allowConfigInject;
     }
 
@@ -85,11 +82,8 @@ public class KsmCredential extends BaseStandardCredentials {
     public String getHostname() {
         return hostname;
     }
-    public boolean getUseSkipSslVerification() {
-        return useSkipSslVerification;
-    }
-    public String getPublicKeyId() {
-        return publicKeyId;
+    public boolean getSkipSslVerification() {
+        return skipSslVerification;
     }
     public boolean getAllowConfigInject() {
         return allowConfigInject;
@@ -101,6 +95,7 @@ public class KsmCredential extends BaseStandardCredentials {
 
     @Extension
     public static class DescriptorImpl extends BaseStandardCredentialsDescriptor {
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Keeper Secrets Manager";
@@ -122,28 +117,15 @@ public class KsmCredential extends BaseStandardCredentials {
             return FormValidation.ok();
         }
 
-        public FormValidation doCheckPublicKeyId(@QueryParameter String publicKeyId) {
-            if(!(publicKeyId.trim().equals(""))) {
-                try {
-                    Integer.parseInt(publicKeyId.trim());
-                    // Would love to check if key id is in range, however it's private. So it passes.
-                }
-                catch(NumberFormatException e) {
-                    return FormValidation.error("The public key id needs to be a whole number.");
-                }
-            }
-            return FormValidation.ok();
-        }
-
         @POST
         public FormValidation doTestCredential(
                 @QueryParameter String hostname,
                 @QueryParameter String clientId,
                 @QueryParameter String privateKey,
                 @QueryParameter String appKey,
-                @QueryParameter String useSkipSslVerification
+                @QueryParameter boolean skipSslVerification
         ) {
-            String error = KsmQuery.testCredentials(clientId, privateKey, appKey, hostname);
+            String error = KsmQuery.testCredentials(clientId, privateKey, appKey, hostname, skipSslVerification);
             if (error != null) {
                 return FormValidation.error(error);
             }

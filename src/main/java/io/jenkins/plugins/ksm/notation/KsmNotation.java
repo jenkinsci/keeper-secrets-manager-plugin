@@ -1,12 +1,10 @@
 package io.jenkins.plugins.ksm.notation;
 
 import com.keepersecurity.secretsManager.core.*;
-
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.lang.SuppressWarnings;
-
 
 public class KsmNotation {
 
@@ -24,6 +22,9 @@ public class KsmNotation {
 
     @SuppressWarnings("unused")
     public static KsmNotationItem parse(String name, String notation, boolean allowFailure) throws Exception {
+
+        // Why use this instead of the SDK? Because this is more user-friendly. However, this causes a problem
+        // if the SDK changes this might not match.
 
         // If the notation starts with the notation prefix, normally used with env vars, remove it.
         if (notation.startsWith(notationPrefix)) {
@@ -75,7 +76,7 @@ public class KsmNotation {
            // This will remove the preceding '[' character.
            String firstPredicate = predicateParts[0].substring(1);
 
-           // If there was a value, then we need to find out if it's a index into an array or a dictionary key
+           // If there was a value, then we need to find out if it's index is an array or a dictionary key
            if ( !firstPredicate.equals("") ) {
 
                // Is the first predicate an index into an array?
@@ -131,10 +132,9 @@ public class KsmNotation {
      *
      * @param items   list of notation items
      * @param options connection information for Keeper Secrets Manager
-     * @throws Exception
      */
 
-    public static void run(Map<String, KsmNotationItem> items, SecretsManagerOptions options) throws Throwable {
+    public static void run(Map<String, KsmNotationItem> items, SecretsManagerOptions options) {
 
         // Find all the unique record UIDs in the requests.
         Set<String> uniqueUids = new HashSet<>();
@@ -145,29 +145,19 @@ public class KsmNotation {
         // Query the unique record ids.
         KeeperSecrets secrets = SecretsManager.getSecrets(options, new ArrayList<>(uniqueUids));
 
-        // Place the secret into a lookup map using their Uid as the key.
-        Map<String, KeeperRecord> secretMap = new HashMap<>();
-        for (KeeperRecord secret : secrets.getRecords()) {
-            secretMap.put(secret.getRecordUid(), secret);
-        }
-
-        KsmFieldParse recordField = new KsmFieldParse(options);
-
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
             KsmNotationItem item = entry.getValue();
-            KeeperRecord record = secretMap.get(item.getUid());
 
-            if ( record == null) {
-                String msg = "Cannot find record with uid " + item.getUid();
-                item.setError(msg);
-                if (!item.getAllowFailure()) {
-                    throw new Exception("For environment variable " + item.getName() + ", " + item.getNotation() + ": " +
-                            msg
-                    );
-                }
-                continue;
+            try {
+                String value = NotationKt.getValue(secrets, item.getNotation());
+                item.setValue(value);
             }
-            recordField.run(item, record);
+            catch(Exception e) {
+                item.setError(e.getMessage());
+                if (!item.getAllowFailure()) {
+                    throw e;
+                }
+            }
         }
     }
 }

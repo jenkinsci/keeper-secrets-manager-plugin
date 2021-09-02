@@ -74,7 +74,8 @@ public class KsmQuery {
         return hostname;
     }
 
-    public static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname) {
+    public static SecretsManagerOptions getOptions(String clientId, String privateKey, String appKey, String hostname,
+                                                   boolean allowUnverifiedCertificate) {
 
         LocalConfigStorage storage = new LocalConfigStorage();
         storage.saveString("clientId", clientId.trim());
@@ -83,16 +84,23 @@ public class KsmQuery {
         storage.saveString("hostname", getHostname(hostname.trim()));
 
         logger.log(Level.FINE, "Setting up the secrets manager options");
+        if (allowUnverifiedCertificate ) {
+            logger.log(Level.INFO, "Keeper Secrets Manager credential is skipping SSL certification verification. "
+                    + "If you want to verify the SSL certification uncheck the skip checkbox in the Jenkins's "
+                    + "Credentials manager.");
+        }
 
-        return new SecretsManagerOptions(storage);
+        return new SecretsManagerOptions(storage, null, allowUnverifiedCertificate);
     }
 
-    public static String testCredentials(String clientId, String privateKey, String appKey, String hostname) {
+    public static String testCredentials(String clientId, String privateKey, String appKey, String hostname,
+                                         boolean allowUnverifiedCertificate) {
 
         logger.log(Level.FINE, "Testing credentials");
 
         try {
-            SecretsManagerOptions options = getOptions(clientId, privateKey, appKey, hostname);
+            SecretsManagerOptions options = getOptions(clientId, privateKey, appKey, hostname,
+                    allowUnverifiedCertificate);
 
             logger.log(Level.FINE, options.toString());
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
@@ -107,13 +115,14 @@ public class KsmQuery {
         return null;
     }
 
-    public void run(Map<String, KsmNotationItem> items) throws Throwable {
+    public void run(Map<String, KsmNotationItem> items) {
 
         SecretsManagerOptions options = getOptions(
                 Secret.toString(credential.getClientId()),
                 Secret.toString(credential.getPrivateKey()),
                 Secret.toString(credential.getAppKey()),
-                credential.getHostname());
+                credential.getHostname(),
+                credential.getSkipSslVerification());
 
         KsmNotation.run(items, options);
     }

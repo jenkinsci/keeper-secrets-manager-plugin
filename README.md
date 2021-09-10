@@ -2,14 +2,14 @@
 
 ## Introduction
 
-This plugin allows you retrieve secrets from the [Keeper Secrets Manager](https://www.keepersecurity.com) and place the values 
-into environmental variables in the builder and workflow pipeline.
+This plugin allows you to retrieve secrets from your [Keeper Secrets Manager](https://www.keepersecurity.com) account and place the values 
+them into environmental variables in the builder and workflow pipeline.
 
 ## Getting Started
 
 ### Getting Credentials
 
-First, start a Jenkins instance with the keeper-secrets-manager plugin installed. You'll also need to install
+First, start a Jenkins instance with the keeper-secrets-manager plugin installed. You will also need to install
 [Keeper Commander](https://github.com/Keeper-Security/Commander/releases).
 
 You can optionally install the [Keeper Secrets Manager CLI](https://app.gitbook.com/@keeper-security/s/secrets-manager/secrets-manager/secrets-manager-command-line-interface) 
@@ -204,7 +204,7 @@ To get the credit card number, the notation would look like this:
 
 ## Issues
 
-Report issues and enhancements in the [Jenkins issue tracker](https://issues.jenkins-ci.org/).
+Report issues and enhancements in the [Keeper Secrets Manager issue tracker](https://github.com/jsupun/keeper-secrets-manager-plugin/issues).
 
 ## LICENSE
 

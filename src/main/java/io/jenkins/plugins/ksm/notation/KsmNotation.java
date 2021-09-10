@@ -1,6 +1,12 @@
 package io.jenkins.plugins.ksm.notation;
 
-import com.keepersecurity.secretsManager.core.*;
+import com.keepersecurity.secretsManager.core.KeeperSecrets;
+import com.keepersecurity.secretsManager.core.NotationKt;
+import com.keepersecurity.secretsManager.core.SecretsManager;
+import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+import hudson.util.Secret;
+import io.jenkins.plugins.ksm.KsmQuery;
+import io.jenkins.plugins.ksm.credential.KsmCredential;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,75 +72,79 @@ public class KsmNotation {
         Pattern predicatePattern = Pattern.compile("\\[.*$");
         Matcher predicateMatcher = predicatePattern.matcher(fieldKey);
         if (predicateMatcher.find()) {
-           String match = predicateMatcher.group(0);
-           String[] predicateParts = match.split("]");
+            String match = predicateMatcher.group(0);
+            String[] predicateParts = match.split("]");
 
-           if (predicateParts.length > 2 ) {
-               throw new Exception("The predicate of the notation appears to be invalid. Too many [], max 2 allowed.");
-           }
+            if (predicateParts.length > 2 ) {
+                throw new Exception("The predicate of the notation appears to be invalid. Too many [], max 2 allowed.");
+            }
 
-           // This will remove the preceding '[' character.
-           String firstPredicate = predicateParts[0].substring(1);
+            // This will remove the preceding '[' character.
+            String firstPredicate = predicateParts[0].substring(1);
 
-           // If there was a value, then we need to find out if it's index is an array or a dictionary key
-           if ( !firstPredicate.equals("") ) {
+            // If there was a value, then we need to find out if it's index is an array or a dictionary key
+            if ( !firstPredicate.equals("") ) {
 
-               // Is the first predicate an index into an array?
-               try {
-                   index = Integer.parseInt(firstPredicate);
-               }
-               catch (NumberFormatException e) {
-                   // Is the first predicate a key to a dictionary?
-                   Pattern dictKeyPattern = Pattern.compile("^[a-zA-Z0-9_]+$");
-                   Matcher dictKeyMatcher = dictKeyPattern.matcher(firstPredicate);
-                   if(dictKeyMatcher.find()) {
-                       dictKey = firstPredicate;
-                   }
-               }
-           }
-           // Indicate that we wanted the entire array, not just a single value.
-           else {
-               returnSingle = Boolean.FALSE;
-           }
+                // Is the first predicate an index into an array?
+                try {
+                    index = Integer.parseInt(firstPredicate);
+                }
+                catch (NumberFormatException e) {
+                    // Is the first predicate a key to a dictionary?
+                    Pattern dictKeyPattern = Pattern.compile("^[a-zA-Z0-9_]+$");
+                    Matcher dictKeyMatcher = dictKeyPattern.matcher(firstPredicate);
+                    if(dictKeyMatcher.find()) {
+                        dictKey = firstPredicate;
+                    }
+                }
+            }
+            // Indicate that we wanted the entire array, not just a single value.
+            else {
+                returnSingle = Boolean.FALSE;
+            }
 
-           // Is there a second predicate [first][second]
-           if (predicateParts.length == 2) {
-               if (!returnSingle) {
-                   throw new Exception("If the second [] is a dictionary key, the first [] needs to have any index.");
-               }
-               // This will remove the preceding '[' character.
-               String secondPredicate = predicateParts[1].substring(1);
-               try {
-                   int ignored = Integer.parseInt(secondPredicate);
-                   throw new Exception("If the second [] is a dictionary key, the first [] needs to have any index.");
-               } catch (NumberFormatException ignored) {}
-               Pattern dictKeyPattern = Pattern.compile("^[a-zA-Z0-9_]+$");
-               Matcher dictKeyMatcher = dictKeyPattern.matcher(secondPredicate);
-               if(dictKeyMatcher.find()) {
-                   dictKey = secondPredicate;
-               }
-               else {
-                   throw new Exception("The second [] must have key for the dictionary. Cannot be blank.");
-               }
-           }
+            // Is there a second predicate [first][second]
+            if (predicateParts.length == 2) {
+                if (!returnSingle) {
+                    throw new Exception("If the second [] is a dictionary key, the first [] needs to have any index.");
+                }
+                // This will remove the preceding '[' character.
+                String secondPredicate = predicateParts[1].substring(1);
+                try {
+                    int ignored = Integer.parseInt(secondPredicate);
+                    throw new Exception("If the second [] is a dictionary key, the first [] needs to have any index.");
+                } catch (NumberFormatException ignored) {}
+                Pattern dictKeyPattern = Pattern.compile("^[a-zA-Z0-9_]+$");
+                Matcher dictKeyMatcher = dictKeyPattern.matcher(secondPredicate);
+                if(dictKeyMatcher.find()) {
+                    dictKey = secondPredicate;
+                }
+                else {
+                    throw new Exception("The second [] must have key for the dictionary. Cannot be blank.");
+                }
+            }
 
-           // Remove the predicate from the key. We know one exists, else we wouldn't be in this conditional block.
-           String[] keyParts = fieldKey.split("\\[");
-           fieldKey = keyParts[0];
+            // Remove the predicate from the key. We know one exists, else we wouldn't be in this conditional block.
+            String[] keyParts = fieldKey.split("\\[");
+            fieldKey = keyParts[0];
         }
 
         return new KsmNotationItem(name, notation, uid, fieldDataType, fieldKey, returnSingle, index, dictKey, allowFailure);
     }
 
-    /**
-     * Run over the notation item and get their values
-     *
-     *
-     * @param items   list of notation items
-     * @param options connection information for Keeper Secrets Manager
-     */
+    public KeeperSecrets getSecrets(SecretsManagerOptions options, List<String> uids) {
+        return SecretsManager.getSecrets(options, uids);
+    }
 
-    public static void run(Map<String, KsmNotationItem> items, SecretsManagerOptions options) {
+    public void run(KsmCredential credential, Map<String, KsmNotationItem> items) {
+
+        SecretsManagerOptions options = KsmQuery.getOptions(
+                Secret.toString(credential.getClientId()),
+                Secret.toString(credential.getPrivateKey()),
+                Secret.toString(credential.getAppKey()),
+                credential.getHostname(),
+                credential.getSkipSslVerification());
+
 
         // Find all the unique record UIDs in the requests.
         Set<String> uniqueUids = new HashSet<>();
@@ -143,7 +153,8 @@ public class KsmNotation {
         }
 
         // Query the unique record ids.
-        KeeperSecrets secrets = SecretsManager.getSecrets(options, new ArrayList<>(uniqueUids));
+        KeeperSecrets secrets = this.getSecrets(options, new ArrayList<>(uniqueUids));
+
 
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
             KsmNotationItem item = entry.getValue();
@@ -161,3 +172,4 @@ public class KsmNotation {
         }
     }
 }
+

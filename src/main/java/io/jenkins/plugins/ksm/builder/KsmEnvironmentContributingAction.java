@@ -10,7 +10,7 @@ import javax.annotation.Nonnull;
 
 public class KsmEnvironmentContributingAction implements EnvironmentContributingAction {
 
-    private final Map<String, String> ksmEnvVars;
+    private transient final Map<String, String> ksmEnvVars;
 
     public KsmEnvironmentContributingAction(@CheckForNull Map<String, String> ksmEnvVars) {
         this.ksmEnvVars = ksmEnvVars;

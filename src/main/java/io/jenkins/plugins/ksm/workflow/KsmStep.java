@@ -8,26 +8,21 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import io.jenkins.plugins.ksm.KsmCommon;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
+import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmNotationItem;
+import io.jenkins.plugins.ksm.notation.KsmTestNotation;
 import org.jenkinsci.plugins.workflow.steps.*;
 import hudson.Extension;
-
-import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
-
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.EnvVars;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
 import javax.annotation.Nonnull;
-
 import io.jenkins.plugins.ksm.KsmSecret;
-import io.jenkins.plugins.ksm.notation.KsmNotation;
-import io.jenkins.plugins.ksm.KsmQuery;
 
 
 public class KsmStep extends Step {
@@ -55,7 +50,7 @@ public class KsmStep extends Step {
 
     protected static class Execution extends GeneralNonBlockingStepExecution {
 
-        private static final long serialVersionUID = 1;
+        private static final long serialVersionUID = 1L;
         private final transient KsmStep step;
 
         public Execution(KsmStep step, StepContext context) {
@@ -67,6 +62,26 @@ public class KsmStep extends Step {
         public boolean start() {
             run(this::doStart);
             return false;
+        }
+
+        private KsmNotation getNotationInstance() throws Exception {
+
+            KsmNotation notation;
+            // If there is a JSON file with fake records, use the test notation, so we don't call the actual
+            // secrets' manager server.
+            if (KsmTestNotation.hasDataFile()) {
+                try {
+                    notation = new KsmTestNotation();
+                    ((KsmTestNotation) notation).loadJsonData();
+                }
+                catch(Exception e ) {
+                    throw new AbortException("There was a problem loading the test JSON data: " + e.getMessage());
+                }
+            }
+            else {
+                notation = new KsmNotation();
+            }
+            return notation;
         }
 
         private void doStart() throws Exception {
@@ -125,7 +140,7 @@ public class KsmStep extends Step {
                 }
 
                 Map<String, KsmNotationItem> notationItems = new HashMap<>();
-                KsmQuery query = new KsmQuery(credential);
+                KsmNotation notation = getNotationInstance();
 
                 for(KsmSecret secret : application.getSecrets()) {
                     try {
@@ -141,10 +156,10 @@ public class KsmStep extends Step {
 
                 try {
                     // Run the notation from the global environmental variables first.
-                    query.run(globalNotationItems);
+                    notation.run(credential, globalNotationItems);
 
                     // Then run the environmental variables from this application.
-                    query.run(notationItems);
+                    notation.run(credential, notationItems);
                 }
                 catch(Exception e) {
                     throw new AbortException(KsmCommon.errorPrefix + "The environmental variable replace had problems: "
@@ -205,7 +220,7 @@ public class KsmStep extends Step {
         // Apparently this is needed. Called with the withCallback. If removed, step won't finish.
         private final class doFinished extends TailCall {
 
-            private static final long serialVersionUID = 1;
+            private static final long serialVersionUID = 2L;
 
             private final EnvVars envVars;
 
@@ -222,7 +237,7 @@ public class KsmStep extends Step {
 
     private static final class Overrider extends EnvironmentExpander {
 
-        private static final long serialVersionUID = 1;
+        private static final long serialVersionUID = 3L;
 
         private final EnvVars envVars;
 
@@ -244,7 +259,7 @@ public class KsmStep extends Step {
 
     private static final class Callback extends BodyExecutionCallback.TailCall {
 
-        private static final long serialVersionUID = 1;
+        private static final long serialVersionUID = 1L;
 
         private final EnvVars envVars;
 

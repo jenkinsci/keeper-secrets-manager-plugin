@@ -13,8 +13,8 @@ import java.util.regex.Pattern;
 
 public class KsmSecret extends AbstractDescribableImpl<KsmSecret> {
 
-    private String envVar;
-    private String notation;
+    private transient String envVar;
+    private transient String notation;
 
     @DataBoundConstructor
     public KsmSecret(String envVar, String notation) {

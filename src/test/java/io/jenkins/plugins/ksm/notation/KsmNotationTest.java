@@ -1,7 +1,7 @@
 package io.jenkins.plugins.ksm.notation;
 import org.junit.*;
 
-public class KSMNotationTest {
+public class KsmNotationTest {
 
     @Test
     public void testSmokeTest() {

@@ -1,14 +1,9 @@
 package io.jenkins.plugins.ksm;
 
 import com.keepersecurity.secretsManager.core.*;
-import io.jenkins.plugins.ksm.credential.KsmCredential;
-import io.jenkins.plugins.ksm.notation.KsmNotation;
-import io.jenkins.plugins.ksm.notation.KsmNotationItem;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.*;
-import hudson.util.Secret;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -16,15 +11,9 @@ import org.json.simple.parser.ParseException;
 
 public class KsmQuery {
 
-    KsmCredential credential;
-
     private static final Logger logger = Logger.getLogger(KsmQuery.class.getName());
 
-    public KsmQuery(KsmCredential credential) {
-        this.credential = credential;
-    }
-
-    private static String handleException(Exception  e) {
+    private static String handleException(Exception e) {
 
         String msg = e.getMessage();
 
@@ -33,8 +22,7 @@ public class KsmQuery {
             JSONParser jsonParser = new JSONParser();
             JSONObject obj = (JSONObject) jsonParser.parse(msg);
             msg = (String) obj.get("message");
-        }
-        catch(ParseException ignore ){
+        } catch (ParseException ignore) {
             // Don't do anything. Keep msg the same.
         }
 
@@ -50,10 +38,9 @@ public class KsmQuery {
             SecretsManager.initializeStorage(storage, token, getHostname(hostname.trim()));
             SecretsManagerOptions options = new SecretsManagerOptions(storage);
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
-            List<KeeperRecord> records= secrets.getRecords();
+            List<KeeperRecord> records = secrets.getRecords();
             logger.log(Level.FINE, "Found " + records.size() + " records with token redemption.");
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             logger.log(Level.WARNING, "Redeeming token resulted in error: " + e.getMessage());
             throw new Exception("Cannot initialize token: " + handleException(e));
         }
@@ -62,11 +49,19 @@ public class KsmQuery {
 
     private static String getHostname(String hostname) {
         // Allow for aliases.
-        switch(hostname) {
-            case "US": hostname="keepersecurity.com"; break;
-            case "EU": hostname="keepersecurity.eu"; break;
-            case "AU": hostname="keepersecurity.com.au"; break;
-            case "US_GOV": hostname="govcloud.keepersecurity.us"; break;
+        switch (hostname) {
+            case "US":
+                hostname = "keepersecurity.com";
+                break;
+            case "EU":
+                hostname = "keepersecurity.eu";
+                break;
+            case "AU":
+                hostname = "keepersecurity.com.au";
+                break;
+            case "US_GOV":
+                hostname = "govcloud.keepersecurity.us";
+                break;
             default:
                 // nothing
         }
@@ -84,7 +79,7 @@ public class KsmQuery {
         storage.saveString("hostname", getHostname(hostname.trim()));
 
         logger.log(Level.FINE, "Setting up the secrets manager options");
-        if (allowUnverifiedCertificate ) {
+        if (allowUnverifiedCertificate) {
             logger.log(Level.INFO, "Keeper Secrets Manager credential is skipping SSL certification verification. "
                     + "If you want to verify the SSL certification uncheck the skip checkbox in the Jenkins's "
                     + "Credentials manager.");
@@ -104,26 +99,13 @@ public class KsmQuery {
 
             logger.log(Level.FINE, options.toString());
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
-            List<KeeperRecord> records= secrets.getRecords();
+            List<KeeperRecord> records = secrets.getRecords();
             logger.log(Level.FINE, "Found " + records.size() + " records");
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             logger.log(Level.WARNING, "Testing credentials resulted in an error: " + e.getMessage());
             return "Validation of the credentials resulted in an error: " + handleException(e);
         }
 
         return null;
-    }
-
-    public void run(Map<String, KsmNotationItem> items) {
-
-        SecretsManagerOptions options = getOptions(
-                Secret.toString(credential.getClientId()),
-                Secret.toString(credential.getPrivateKey()),
-                Secret.toString(credential.getAppKey()),
-                credential.getHostname(),
-                credential.getSkipSslVerification());
-
-        KsmNotation.run(items, options);
     }
 }

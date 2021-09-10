@@ -7,8 +7,8 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.ksm.KsmCommon;
-import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.Messages;
+import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmNotationItem;
 import jenkins.tasks.SimpleBuildStep;
@@ -24,18 +24,24 @@ import javax.annotation.Nonnull;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import io.jenkins.plugins.ksm.KsmSecret;
-import io.jenkins.plugins.ksm.KsmQuery;
 
 
 public class KsmBuilder extends Builder implements SimpleBuildStep {
 
-    private String credentialsId;
-    private List<KsmSecret> secrets;
+    private transient String credentialsId;
+    private transient List<KsmSecret> secrets;
+    private transient KsmNotation notation;
 
     @DataBoundConstructor
     public KsmBuilder(String credentialsId, List<KsmSecret> secrets) {
         this.credentialsId = credentialsId;
         this.secrets = secrets;
+        this.notation = new KsmNotation();
+    }
+    public KsmBuilder(String credentialsId, List<KsmSecret> secrets, KsmNotation notation) {
+        this.credentialsId = credentialsId;
+        this.secrets = secrets;
+        this.notation = notation;
     }
 
     public String getCredentialsId() {
@@ -81,7 +87,6 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
         }
 
         Map<String, KsmNotationItem> notationItems = new HashMap<>();
-        KsmQuery query = new KsmQuery(credential);
 
         // Create notation items from the build secrets and add them to a map. Use the env var name as the
         // key since that is unique.
@@ -116,7 +121,7 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
         // Process all the notation. This will connect to Secret Manager, get the record, get the value and will store
         // the value in the item.
         try {
-            query.run(notationItems);
+            notation.run(credential, notationItems);
         }
         catch(Exception e) {
             throw new AbortException(KsmCommon.errorPrefix + "The environmental variable replace had problems: "
@@ -183,5 +188,4 @@ public class KsmBuilder extends Builder implements SimpleBuildStep {
             return KsmCommon.buildCredentialsIdListBox(context);
         }
     }
-
 }

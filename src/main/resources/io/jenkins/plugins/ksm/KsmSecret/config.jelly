@@ -1,12 +1,25 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:entry title="${%EnvVars}" field="envVar">
-        <f:textbox/>
-    </f:entry>
     <f:entry title="${%Notation}" field="notation">
         <f:textbox/>
     </f:entry>
+    <f:section title="${Destination}">
+        <f:radioBlock name="destination" value="env"  checked="${instance.isDestinationType('env')}" title="${%RadioEnvVars}" inline="true">
+            <f:nested>
+                <f:entry title="${%EnvVars}" field="envVar">
+                    <f:textbox/>
+                </f:entry>
+            </f:nested>
+        </f:radioBlock>
+        <f:radioBlock name="destination" value="file"  checked="${instance.isDestinationType('file')}" title="${%RadioFilePath}" inline="true">
+            <f:nested>
+                <f:entry title="${%FilePath}" field="filePath">
+                    <f:textbox/>
+                </f:entry>
+            </f:nested>
+        </f:radioBlock>
+    </f:section>
     <div align="right"><f:repeatableDeleteButton /></div>
     <br/>
 </j:jelly>

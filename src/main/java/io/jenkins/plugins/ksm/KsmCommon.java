@@ -1,7 +1,9 @@
 package io.jenkins.plugins.ksm;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import hudson.AbortException;
 import hudson.EnvVars;
+import hudson.FilePath;
 import hudson.model.ItemGroup;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
@@ -9,6 +11,10 @@ import hudson.util.Secret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import org.json.simple.JSONObject;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +22,7 @@ import java.util.Base64;
 
 public class KsmCommon {
 
-    public static final String errorPrefix = "Keeper Secrets Manager ERROR: ";
+    public static final String errorPrefix = "Keeper Secrets Manager: ";
     public static final String configPrefix = "KSM_CONFIG_BASE64_";
     public static final String configDescPrefix = "KSM_CONFIG_BASE64_DESC_";
     public static final String configCountKey = "KSM_CONFIG_COUNT";
@@ -28,7 +34,6 @@ public class KsmCommon {
 
         final ListBoxModel items = new ListBoxModel();
 
-
         List<KsmCredential> ksmCredentials = CredentialsProvider.lookupCredentials(
                 KsmCredential.class,
                 context,
@@ -37,10 +42,7 @@ public class KsmCommon {
         );
         for (KsmCredential item : ksmCredentials) {
             String name = item.getDescription();
-            if (name.equals("")) {
-                name = item.getId();
-            }
-            items.add(name, item.getId());
+            items.add(name, item.getPublicId());
         }
         return items;
     }
@@ -86,4 +88,48 @@ public class KsmCommon {
             }
         }
     }
-}
+
+    public static boolean validFilePath(String fileStr) {
+
+        // Since we are concat paths, don't allow the file to start with / or \
+        if (fileStr.startsWith("/") || fileStr.startsWith("\\")) {
+            return false;
+        }
+
+        File file = new File(fileStr);
+        do {
+            // Not sure if possible in Jenkins FilePath, however don't allow walk back up directory tree. No
+            // reason to ever use .. a file path.
+            if(file.getName().equals("..")) {
+                return false;
+            }
+            file = file.getParentFile();
+        } while ((file != null) && (file.getParentFile() != null));
+
+        return true;
+    }
+
+
+    public static void writeFileToWorkspace(FilePath workspace, String fileName, Object value) throws IOException, InterruptedException {
+
+        // Make sure the file name is a valid location for a secret.
+        if (fileName.equals("")) {
+            throw new AbortException("The file path is blank. Cannot save secret.");
+        }
+        if (!validFilePath(fileName)) {
+            throw new AbortException("The file path " + fileName + " is invalid. Cannot save secret to that file path.");
+        }
+
+        FilePath dir = workspace.child(fileName).getParent();
+        if (dir != null) {
+            dir.mkdirs();
+        }
+
+        OutputStream bos = workspace.child(fileName).write();
+        if (value instanceof String) {
+            value = ((String) value).getBytes(Charset.defaultCharset());
+        }
+        bos.write((byte[]) value);
+        bos.close();
+    }
+ }

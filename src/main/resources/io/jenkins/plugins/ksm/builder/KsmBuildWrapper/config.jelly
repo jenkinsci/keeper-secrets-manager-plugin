@@ -5,7 +5,7 @@
     <f:description>
         ${%blurb}
     </f:description>
-    <f:section title="Application">
-        <f:repeatableProperty field="application" add="Add Application"/>
+    <f:section title="${%Application}">
+        <f:repeatableProperty field="application" add="${%AddApplication}"/>
     </f:section>
 </j:jelly>

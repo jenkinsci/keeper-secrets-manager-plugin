@@ -2,13 +2,18 @@ package io.jenkins.plugins.ksm.notation;
 
 import com.keepersecurity.secretsManager.core.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import org.json.*;
+import java.util.Base64;
+
+import static com.keepersecurity.secretsManager.core.SecretsManager.downloadFile;
 
 public class KsmTestNotation extends KsmNotation {
 
     private KeeperSecrets secrets;
     private final static String ksmDataFile = "ksmTestData.json";
+    private final Map<String, byte[]> fileCache = new HashMap<>();
 
     /**
      * This method will add test data. It takes a JSON structure which it will turn
@@ -28,6 +33,12 @@ public class KsmTestNotation extends KsmNotation {
      *                      "label": "Field Label",
      *                      "fieldType": "Login",
      *                      "values": ["MY_LOGIN"]
+     *                  }
+     *              ],
+     *              "files": [
+     *                  {
+     *                      "name": "File name and title",
+     *                      "data": "BASE64"
      *                  }
      *              ]
      *          }
@@ -61,6 +72,7 @@ public class KsmTestNotation extends KsmNotation {
                 String fieldType = fieldArr.getJSONObject(fieldIndex).getString("fieldType");
 
                 // This is really limited right now. Only does Login field, but can be expanded.
+                // If you add stuff, remember to add an entry in the resources/META-INF/hudson.remoting.ClassFilter
                 KeeperRecordField field = null;
                 switch (fieldType) {
                     case("Login"):
@@ -68,6 +80,9 @@ public class KsmTestNotation extends KsmNotation {
                         break;
                     case("Password"):
                         field = new Password(label, true, false, false, null, mockValue);
+                        break;
+                    case("Url"):
+                        field = new Url(label, true, false, mockValue);
                         break;
                     default:
                         //
@@ -83,13 +98,40 @@ public class KsmTestNotation extends KsmNotation {
                     note
             );
 
+            List<KeeperFile> files = new ArrayList<>();
+            JSONArray fileArr = secretArr.getJSONObject(index).getJSONArray("files");
+            for (int fileIndex = 0; fileIndex < fileArr.length(); fileIndex++) {
+                byte[] content = fileArr.getJSONObject(fileIndex).getString("data").getBytes(StandardCharsets.UTF_8);
+
+                fileCache.put(
+                        fileArr.getJSONObject(fileIndex).getString("name"),
+                        Base64.getDecoder().decode(content)
+                );
+
+                KeeperFileData fileData = new KeeperFileData(
+                        fileArr.getJSONObject(fileIndex).getString("name"),
+                        fileArr.getJSONObject(fileIndex).getString("name"),
+                        "",
+                        content.length,
+                        1L
+                );
+                KeeperFile keeperFile = new KeeperFile(
+                        "HI".getBytes(StandardCharsets.UTF_8),
+                        "fileUId",
+                        fileData,
+                        "http://localhost",
+                        null
+                );
+                files.add(keeperFile);
+            }
+
             KeeperRecord record = new KeeperRecord(
-                    "HI".getBytes("UTF-8"),
+                    "HI".getBytes(StandardCharsets.UTF_8),
                     uid,
                     null,
                     data,
                     0L,
-                    null
+                    files
             );
             records.add(record);
         }
@@ -99,6 +141,11 @@ public class KsmTestNotation extends KsmNotation {
 
     public KeeperSecrets getSecrets(SecretsManagerOptions options, List<String> uids) {
         return this.secrets;
+    }
+
+    public byte[] downloadDataFile(KeeperFile file) {
+        String name = file.getData().getName();
+        return fileCache.get(name);
     }
 
     private static String getDataFilePath() {

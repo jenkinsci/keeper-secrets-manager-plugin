@@ -1,11 +1,10 @@
 package io.jenkins.plugins.ksm.notation;
 
-import com.keepersecurity.secretsManager.core.KeeperSecrets;
-import com.keepersecurity.secretsManager.core.NotationKt;
-import com.keepersecurity.secretsManager.core.SecretsManager;
-import com.keepersecurity.secretsManager.core.SecretsManagerOptions;
+import static com.keepersecurity.secretsManager.core.SecretsManager.downloadFile;
+import com.keepersecurity.secretsManager.core.*;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.KsmQuery;
+import io.jenkins.plugins.ksm.KsmSecret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -17,17 +16,68 @@ public class KsmNotation {
     // A notation might start with a prefix, that will need to be removed. This is the that String prefix.
     public static final String notationPrefix = "keeper";
 
-    public static KsmNotationItem find(String name, String notation, boolean allowFailure) throws Exception {
+    /**
+     * Check in envVar is a keeper notation and then attempt to parse it.
+     * @param envVar The name of the environmental variable
+     * @param notation The keeper notation
+     * @param allowFailure Allow failure, don't throw exception, but log the error.
+     * @return KsmNotationItem
+     * @throws Exception The parse failed for this reason.
+     */
 
-        KsmNotationItem request = null;
+    public static KsmNotationItem find(String envVar, String notation, boolean allowFailure) throws Exception {
+
+        KsmNotationItem item = null;
         if (notation.startsWith(notationPrefix)) {
-            request = parse(name, notation, allowFailure);
+            item = KsmNotation.parse(KsmSecret.destinationEnvVar, envVar, null, notation, allowFailure);
         }
-        return request;
+        return item;
     }
 
+    /**
+     * Parse a KsmSecret instance.
+     * @param item An instance of KsmSecret
+     * @param allowFailure Allow failure, don't throw exception, but log the error.
+     * @return KsmNotationItem
+     * @throws Exception The parse failed for this reason.
+     */
+
+    public static KsmNotationItem parse(KsmSecret item, boolean allowFailure) throws Exception {
+        return KsmNotation.parse(
+                item.getDestination(),
+                item.getEnvVar(),
+                item.getFilePath(),
+                item.getNotation(),
+                allowFailure
+        );
+    }
+
+    /**
+     * Parse an environmental variable notation.
+     * @param envVar The name of the environmental variable
+     * @param notation The keeper notation
+     * @param allowFailure Allow failure, don't throw exception, but log the error.
+     * @return KsmNotationItem
+     * @throws Exception The parse failed for this reason.
+     */
+
+    public static KsmNotationItem parse(String envVar, String notation, boolean allowFailure) throws Exception {
+        return KsmNotation.parse(KsmSecret.destinationEnvVar, envVar, null, notation, allowFailure);
+    }
+
+    /**
+     * Parse notation and keeper track the destination
+     * @param destination Flag indicating in the destination is a environmental var or  file path.
+     * @param envVar The name of the environmental variable
+     * @param filePath Path to where the secret should stored on disk.
+     * @param notation The keeper notation
+     * @param allowFailure Allow failure, don't throw exception, but log the error.
+     * @return KsmNotationItem
+     * @throws Exception The parse failed for this reason.
+     */
+
     @SuppressWarnings("unused")
-    public static KsmNotationItem parse(String name, String notation, boolean allowFailure) throws Exception {
+    public static KsmNotationItem parse(String destination, String envVar, String filePath, String notation, boolean allowFailure) throws Exception {
 
         // Why use this instead of the SDK? Because this is more user-friendly. However, this causes a problem
         // if the SDK changes this might not match.
@@ -129,11 +179,26 @@ public class KsmNotation {
             fieldKey = keyParts[0];
         }
 
-        return new KsmNotationItem(name, notation, uid, fieldDataType, fieldKey, returnSingle, index, dictKey, allowFailure);
+        return new KsmNotationItem(
+                destination,
+                envVar,
+                filePath,
+                notation,
+                uid,
+                fieldDataType,
+                fieldKey,
+                returnSingle,
+                index,
+                dictKey,
+                allowFailure);
     }
 
     public KeeperSecrets getSecrets(SecretsManagerOptions options, List<String> uids) {
         return SecretsManager.getSecrets(options, uids);
+    }
+
+    public byte[] downloadDataFile(KeeperFile file) {
+        return downloadFile(file);
     }
 
     public void run(KsmCredential credential, Map<String, KsmNotationItem> items) {
@@ -145,23 +210,38 @@ public class KsmNotation {
                 credential.getHostname(),
                 credential.getSkipSslVerification());
 
-
         // Find all the unique record UIDs in the requests.
         Set<String> uniqueUids = new HashSet<>();
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
-            uniqueUids.add(entry.getValue().getUid());
+            KsmNotationItem item = entry.getValue();
+            // Skip over any item already flagged as an error.
+            if(item.getError() != null) {
+                continue;
+            }
+            uniqueUids.add(item.getUid());
         }
 
         // Query the unique record ids.
         KeeperSecrets secrets = this.getSecrets(options, new ArrayList<>(uniqueUids));
 
-
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
             KsmNotationItem item = entry.getValue();
 
+            // Skip over any item already flagged as an error.
+            if(item.getError() != null) {
+                continue;
+            }
+
             try {
-                String value = NotationKt.getValue(secrets, item.getNotation());
-                item.setValue(value);
+                if ( item.getFieldDataType() == KsmFieldDataEnumType.FILE ) {
+                    KeeperFile file = Notation.getFile(secrets, item.getNotation());
+                    byte[] fileBytes = downloadDataFile(file);
+                    item.setValue(fileBytes);
+                }
+                else {
+                    String value = Notation.getValue(secrets, item.getNotation());
+                    item.setValue(value);
+                }
             }
             catch(Exception e) {
                 item.setError(e.getMessage());

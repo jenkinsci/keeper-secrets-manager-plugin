@@ -1,11 +1,14 @@
 package io.jenkins.plugins.ksm.notation;
 
+import io.jenkins.plugins.ksm.KsmSecret;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 public class KsmNotationItem {
 
-    private String name;
+    private String destination;
+    private String envVar;
+    private String filePath;
     private String notation;
     private String uid;
     private KsmFieldDataEnumType fieldDataType;
@@ -13,13 +16,15 @@ public class KsmNotationItem {
     private Boolean returnSingle;
     private Integer arrayIndex;
     private String dictKey;
-    private String value;
+    private Object value;
     private boolean allowFailure;
     private String error;
 
     @DataBoundConstructor
     public KsmNotationItem(
-            String name,
+            String destination,
+            String envVar,
+            String filePath,
             String notation,
             String uid,
             KsmFieldDataEnumType fieldDataType,
@@ -36,7 +41,10 @@ public class KsmNotationItem {
             arrayIndex = 0;
         }
 
-        this.name = name;
+        this.destination = destination;
+        this.envVar = envVar;
+        this.filePath = filePath;
+
         this.notation = notation;
         this.uid = uid;
         this.fieldDataType = fieldDataType;
@@ -46,9 +54,29 @@ public class KsmNotationItem {
         this.dictKey = dictKey;
         this.allowFailure = allowFailure;
     }
+    // TODO - This is a stopgap for parser errors.
+    public KsmNotationItem(
+            String destination,
+            String envVar,
+            String filePath,
+            String error
+    ) {
+        this.destination = destination;
+        this.envVar = envVar;
+        this.filePath = filePath;
+        this.error = error;
+    }
 
     public String getName() {
-        return name;
+        return KsmSecret.buildSecretName(getDestination(), getEnvVar(), getFilePath());
+    }
+
+    public String getDestination() { return destination; }
+    public String getEnvVar() {
+        return envVar;
+    }
+    public String getFilePath() {
+        return filePath;
     }
     public String getNotation() {
         return notation;
@@ -71,7 +99,7 @@ public class KsmNotationItem {
     public String getDictKey() {
         return dictKey;
     }
-    public String getValue() {
+    public Object getValue() {
         return value;
     }
     public boolean getAllowFailure() {
@@ -82,12 +110,20 @@ public class KsmNotationItem {
     }
 
     @DataBoundSetter
-    public void setName(String name) {
-        this.name = name;
+    public void setDestination(String destination) {
+        this.destination = destination;
+    }
+    @DataBoundSetter
+    public void setEnvVar(String envVar) {
+        this.envVar = envVar;
+    }
+    @DataBoundSetter
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
     @DataBoundSetter
     public void setNotation(String notation) {
-        this.name = notation;
+        this.notation = notation;
     }
     @DataBoundSetter
     public void setUid(String uid) {
@@ -114,7 +150,7 @@ public class KsmNotationItem {
         this.dictKey = dictKey;
     }
     @DataBoundSetter
-    public void setValue(String value) {
+    public void setValue(Object value) {
         this.value = value;
     }
     @DataBoundSetter
@@ -124,6 +160,10 @@ public class KsmNotationItem {
     @DataBoundSetter
     public void setError(String error) {
         this.error = error;
+    }
+
+    public boolean isDestinationEnvVar() {
+        return destination.equals(KsmSecret.destinationEnvVar);
     }
 
     public void clearError() {

@@ -1,0 +1,17 @@
+com.keepersecurity.secretsManager.core.KeeperSecrets
+com.keepersecurity.secretsManager.core.KeeperRecord
+com.keepersecurity.secretsManager.core.KeeperRecordData
+com.keepersecurity.secretsManager.core.Login
+com.keepersecurity.secretsManager.core.Password
+com.keepersecurity.secretsManager.core.Url
+com.keepersecurity.secretsManager.core.KeeperFile
+com.keepersecurity.secretsManager.core.KeeperFileData
+java.io.PrintStream
+java.io.ByteArrayOutputStream
+java.io.BufferedWriter
+java.io.OutputStreamWriter
+sun.nio.cs.StreamEncoder
+sun.nio.cs.UTF_8
+sun.nio.cs.UTF_8$Encoder
+java.nio.charset.CodingErrorAction
+java.nio.HeapByteBuffer

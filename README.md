@@ -20,7 +20,7 @@ Keeper Commander will be used to generate the one time tokens used by the plugin
     My Vault> secrets-manager client add --app MyApplication
 
     ------------------------------------------------------------------
-    One Time Access Token: XXXXXXXXXXX
+    One Time Access Token: XX:XXXXXXXXXXX
     ------------------------------------------------------------------
 
 Documentation for Keeper Commander can be found [here](https://app.gitbook.com/@keeper-security/s/secrets-manager/commander-cli/overview).
@@ -30,44 +30,40 @@ then select **Keeper Secrets Manager** in the **Kind** dropdown.
 
 ![](images/cred_add.png)
 
-Cut-n-paste the One Time Access Token into the UI field, set the Hostname, and save the credential. Upon saving
+Cut-n-paste the One Time Access Token into the UI field, set the Description, and save the credential. Upon saving
 the plugin will attempt to retrieve the required keys from the Keeper Secrets Manager server and populate them. When
 you open the credential again, the One Time Access Token should be blank and clicking the View Keys button will
 display your private and application keys, and client id.
 
-You can set a **Description** of the credentials to make it easily found in other parts of Jenkins. Else the credential
-id will be shown.
-
 If there was a problem redeeming the One Time Access Token, the error message will appear in the One Time Access Token
 field.
 
-### Builder
+### Freestyle Project
 
-As part of the **Add build step** dropdown in a build's configuration, you'll find **Keeper Secrets Manager**. This
-build step will allow you select a credential and add multiple secrets.
+The Keeper Secrets Manager is available in a freestyle project as a **Build Environment**. To
+enable just check the Keeper Secrets Manager box in the Build Environment checkbox group.
 
 ![](images/builder.png)
 
-Per secret, an environmental variable name needs to be entered and [Keeper Notation](#keeper-notation) describing which
-field in a record should be used for the value of the environmental variable is required.
+Next click to Add Application button and select the application credential that contains
+your secrets. At this point you can begin to add secrets.
 
-When the step runs, the notation will be used to retrieve your secret, and the value placed into an environmental
-variable. If a problem occurs like the record not being found, or the fields is not found, the build will be aborted.
-The error can found in the console logging and also the system logging.
+SecretS uses [Keeper Notation](#keeper-notation) to describe which
+field in a record should be retrieved. The secret value can be stored in an environmental
+variable or saved to a file in your workspace.
 
-The secret in the environmental variables will cascade to any following steps. For example, if you have
-an **Execute Shell** step, you can see the environmental variables.
+Select the desired destination radio button and enter the environmental variable or
+file name.
 
-    #!/bin/bash
-    export
-
-    echo "My Login = ${MY_LOGIN}"
-
-When the build is done. The environmental variable, with the secrets, will be removed.
+The console logger will attempt to redact any secrets that are displayed. Any secret files
+created the by the plugin will be removed when the build finishes. It is recommended that
+any Keeper Notation that uses **file** be stored as a file in the workspace instead
+of an environmental variable. Files may contain encoding or special characters that
+prevent correct redacting in the console.
 
 ### Pipeline Workflow
 
-Below is an example of a Jenkinfile using the Keeper Secrets Manager plugin.
+Below is an example of a Jenkinsfile using the Keeper Secrets Manager plugin.
 
     pipeline {
       agent any 
@@ -76,20 +72,21 @@ Below is an example of a Jenkinfile using the Keeper Secrets Manager plugin.
           steps {
             withKsm(application: [
               [
-                credentialsId: 'c7655790-7066-46c4-9301-32b7702c04eb',
+                credentialPublicId: 'PID-5142ceb84e9b4a2a9179cc5b6fe2798b',
                 secrets: [
-                  [envVar: 'MY_LOGIN', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/field/login'],
-                  [envVar: 'MY_PASSWORD', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/field/password'],
-                  [envVar: 'MY_SEC_PHONE_NUM', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/phone[1][number]'],
-                  [envVar: 'TOMCAT_CONFIG', notation: 'keeper://OIm1Rs-A1QyhIZMSPu6YoQ/file/server.xml']
+                  [destination: 'env', envVar: 'MY_LOGIN', filePath: '', notation: 'keeper://1adh_WZxtbbHWqf6IALMVg/field/login'],
+                  [destination: 'env', envVar: 'MY_SEC_PHONE_NUM', filePath: '', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/phone[1][number]'],
+                  [destination: 'file', envVar: '', filePath: 'img.png', notation: 'keeper://V8lFbio0Bs0LuvaSD5DDHA/file/IMG_0036.png']
                 ]
               ]  
             ]) {
               sh'''
+                  # Will be redected in console  
                   echo "MY_LOGIN = ${MY_LOGIN}"
-                  echo "MY_PASSWORD = ${MY_PASSWORD}"
                   echo "MY_SEC_PHONE_NUM = ${MY_SEC_PHONE_NUM}"
-                  echo "${TOMCAT_CONFIG}" > server.xml
+
+                  ./my/build/script --login  "${MY_LOGIN}" --phone "${MY_SEC_PHONE_NUM}"
+                  ls -l img.png
               '''
             }
           }

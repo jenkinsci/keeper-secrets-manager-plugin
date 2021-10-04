@@ -1,18 +1,19 @@
 package io.jenkins.plugins.ksm.workflow;
 
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
-import hudson.model.Item;
-import hudson.security.ACL;
+import hudson.FilePath;
+import hudson.console.ConsoleLogFilter;
+import io.jenkins.plugins.ksm.KsmApplication;
 import io.jenkins.plugins.ksm.KsmCommon;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
+import io.jenkins.plugins.ksm.log.KsmStepConsoleLogFilter;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmNotationItem;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
 import org.jenkinsci.plugins.workflow.steps.*;
 import hudson.Extension;
+import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
@@ -89,77 +90,69 @@ public class KsmStep extends Step {
             Logger LOGGER = Logger.getLogger(KsmStep.class.getName());
             LOGGER.log(Level.FINE, "Starting Keeper Secrets Manager workflow step");
 
+            Run<?, ?> run = getContext().get(Run.class);
+            assert run != null;
             TaskListener listener = getContext().get(TaskListener.class);
             assert listener != null;
-            EnvVars existingEnvVars = getContext().get(EnvVars.class);
+            FilePath workspace = getContext().get(FilePath.class);
+            assert workspace != null;
 
-            // Find any global env vars using the Keeper notation. This might be set on a node, load in a prior build step,
-            // come from another env var plugin, etc. These are ones not from the Keeper plugin. The problem is we
-            // are not sure which application contains the record. Try them with each application, remove it from the
-            // list if we find it. At the end if any exists, those are errors.
-            Map<String, KsmNotationItem> globalNotationItems = new HashMap<String, KsmNotationItem>();
-            if (existingEnvVars != null) {
-                for (Map.Entry<String, String> entry : existingEnvVars.entrySet()) {
-                    LOGGER.log(Level.FINE, "Checking global env var " + entry.getKey() + " for notation.");
-                    try {
-                        KsmNotationItem item = KsmNotation.find(entry.getKey(), entry.getValue(), true);
-                        if (item != null) {
-                            LOGGER.log(Level.FINE, " * found " + entry.getValue());
-                            globalNotationItems.put(entry.getKey(), item);
-                        }
-                    } catch (Exception e) {
-                        throw new AbortException(KsmCommon.errorPrefix + "The global environmental variable " + entry.getKey() +
-                                " contains invalid syntax: " + e.getMessage());
-                    }
-                }
-            }
+            // An array of secret values used to redact console logging.
+            List<String> secretValues = new ArrayList<>();
+            List<String> secretFiles = new ArrayList<>();
 
             // For each application, for all the secrets, replace them with actual secrets.
             EnvVars envVars = new EnvVars();
             for (KsmApplication application : step.application) {
 
-                String credentialsId = application.getCredentialsId();
-
-                LOGGER.log(Level.FINE, "Processing secrets for credentials id " + credentialsId);
-
-                // Get the credential. First get all KsmCredential, then find the best match.
-                // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider.lookupCredentials is updated.
-                List<KsmCredential> credentials = CredentialsProvider.lookupCredentials(
-                        KsmCredential.class,
-                        (Item) null,
-                        ACL.SYSTEM,
-                        Collections.emptyList()
-                );
-                KsmCredential credential = CredentialsMatchers.firstOrNull(credentials,
-                        CredentialsMatchers.withId(credentialsId));
-                if (credential == null) {
-                    throw new AbortException(KsmCommon.errorPrefix + "Cannot find the credential id " + credentialsId);
+                KsmCredential credential;
+                try {
+                    credential = KsmCredential.getCredentialFromPublicId(application.getCredentialPublicId());
+                }
+                catch(Exception e) {
+                    throw new AbortException(KsmCommon.errorPrefix + e.getMessage());
                 }
                 if (!credential.getCredentialError().equals("")) {
-                    throw new AbortException(KsmCommon.errorPrefix + "Credential id " + credentialsId + " has errors associated with it. Cannot not use.");
+                    throw new AbortException(KsmCommon.errorPrefix + "The credential '" + credential.getDescription()
+                            + "' errors associated with it. Cannot not use.");
                 }
 
                 Map<String, KsmNotationItem> notationItems = new HashMap<>();
-                KsmNotation notation = getNotationInstance();
-
                 for(KsmSecret secret : application.getSecrets()) {
+
+                    // Make sure the Jenkinsfile script has valid values.
                     try {
-                        LOGGER.log(Level.FINE, "Parsing notation " + secret.getNotation() + " for env var " + secret.getEnvVar());
-                        KsmNotationItem notationItem = KsmNotation.parse(secret.getEnvVar(), secret.getNotation(), false);
-                        notationItems.put(secret.getEnvVar(), notationItem);
+                        secret.validate();
                     }
                     catch(Exception e) {
-                        throw new AbortException(KsmCommon.errorPrefix + "Could not replace env var " + secret.getEnvVar() +
-                                ":" + e.getMessage());
+                        throw new AbortException(KsmCommon.errorPrefix + "The script has value problems: "
+                            + e.getMessage());
+                    }
+
+                    // Get the name of secret which is either the env var name or file path.
+                    String secretName = KsmSecret.buildSecretName(
+                            secret.getDestination(),
+                            secret.getEnvVar(),
+                            secret.getFilePath()
+                    );
+
+                    // Parse the notation and check if it's valid.
+                    try {
+                        LOGGER.log(Level.FINE, "Parsing notation " + secret.getNotation() + " for secret "
+                                + secretName);
+
+                        KsmNotationItem notationItem = KsmNotation.parse(secret, false);
+                        notationItems.put(secretName, notationItem);
+                    }
+                    catch(Exception e) {
+                        throw new AbortException(KsmCommon.errorPrefix + "Could not parse the secret "
+                                + secretName + ":" + e.getMessage());
                     }
                 }
 
                 try {
-                    // Run the notation from the global environmental variables first.
-                    notation.run(credential, globalNotationItems);
-
                     // Then run the environmental variables from this application.
-                    notation.run(credential, notationItems);
+                    getNotationInstance().run(credential, notationItems);
                 }
                 catch(Exception e) {
                     throw new AbortException(KsmCommon.errorPrefix + "The environmental variable replace had problems: "
@@ -168,26 +161,34 @@ public class KsmStep extends Step {
                     throwable.printStackTrace();
                 }
 
-                // Set the environmental variables values from global. These are allowed to fail.
-                List<String> removeList = new ArrayList<>();
-                for(Map.Entry<String, KsmNotationItem> entry: globalNotationItems.entrySet()) {
-                    KsmNotationItem notationItem = entry.getValue();
-
-                    if (notationItem.getError() == null) {
-                        envVars.put(entry.getKey(), notationItem.getValue());
-
-                        // Since we got a value, and set it, remove it from the list.
-                        removeList.add(entry.getKey());
-                    }
-                }
-                for (String s : removeList) {
-                    globalNotationItems.remove(s);
-                }
-
-                // Set the environmental variables values from workflow.
+                // Set the environmental variables and file values from workflow.
                 for(Map.Entry<String, KsmNotationItem> entry: notationItems.entrySet()) {
                     KsmNotationItem notationItem = entry.getValue();
-                    envVars.put(entry.getKey(), notationItem.getValue());
+
+                    Object value = notationItem.getValue();
+                    if( notationItem.isDestinationEnvVar()) {
+                        // Env Var have to be strings or the OS won't like them. Validate we have a string for the
+                        // env var.
+                        if (value instanceof String ) {
+                            envVars.put(notationItem.getEnvVar(), (String) value);
+                        }
+                    }
+                    else {
+                        try {
+                            KsmCommon.writeFileToWorkspace(
+                                    workspace,
+                                    notationItem.getFilePath(),
+                                    value
+                            );
+                            secretFiles.add(notationItem.getFilePath());
+                        } catch(IOException e) {
+                            throw new AbortException(KsmCommon.errorPrefix + "Could not write secret to "
+                                    + notationItem.getFilePath() + ": " + e.getMessage());
+                        }
+                    }
+                    if (value instanceof String ) {
+                        secretValues.add((String) value);
+                    }
                 }
 
                 // Add the config of the credential to the env var. This config will allow any KSM apps within the
@@ -196,23 +197,15 @@ public class KsmStep extends Step {
                 KsmCommon.addCredentialToEnv(credential, envVars, envVars);
             }
 
-            // Abort if anything exists in the global notation list. These would be item that could not be found.
-            for(Map.Entry<String, KsmNotationItem> entry: globalNotationItems.entrySet()) {
-                KsmNotationItem notationItem = entry.getValue();
-                String msg = "The global environmental variable " + entry.getKey() + ", notation "  + notationItem.getNotation()
-                        + ", could not be found for any of the credentials.";
-                if (notationItem.getError() != null) {
-                    msg += " " + notationItem.getError();
-                }
-                throw new AbortException(msg);
-            }
-
-            getContext().newBodyInvoker().
-                    withContext(
+            getContext().newBodyInvoker()
+                    .withContext(
                             EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class),
-                                    new Overrider(envVars))).
-                    withCallback(new doFinished(envVars)).
-                    start();
+                                    new Overrider(envVars)))
+                    .withContext(
+                            BodyInvoker.mergeConsoleLogFilters(getContext().get(ConsoleLogFilter.class),
+                                    new KsmStepConsoleLogFilter(run.getCharset().name(), secretValues)))
+                    .withCallback(new doFinished(secretFiles, workspace))
+                    .start();
 
             LOGGER.log(Level.FINE, "Finishing Keeper Secrets Manager workflow step");
         }
@@ -222,15 +215,18 @@ public class KsmStep extends Step {
 
             private static final long serialVersionUID = 2L;
 
-            private final EnvVars envVars;
+            private final List<String> secretFiles;
+            private final FilePath workspace;
 
-            doFinished( EnvVars envVars ) {
-                this.envVars = envVars;
+            doFinished( List<String> secretFiles, FilePath workspace) {
+
+                this.secretFiles = secretFiles;
+                this.workspace = workspace;
             }
 
             @Override
             protected void finished(StepContext context) {
-                new Callback(envVars).finished(context);
+                new Callback(secretFiles, workspace).finished(context);
             }
         }
     }
@@ -261,14 +257,27 @@ public class KsmStep extends Step {
 
         private static final long serialVersionUID = 1L;
 
-        private final EnvVars envVars;
+        private final List<String> secretFiles;
+        private final FilePath workspace;
 
-        Callback(EnvVars envVars) {
-            this.envVars = envVars;
+        Callback(List<String> secretFiles, FilePath workspace) {
+
+            this.secretFiles = secretFiles;
+            this.workspace = workspace;
         }
 
         @Override
         protected void finished(StepContext context) {
+
+            Logger LOGGER = Logger.getLogger(KsmStep.class.getName());
+            for(String fileName : secretFiles) {
+                try {
+                    workspace.child(fileName).delete();
+                }
+                catch(Exception e) {
+                    LOGGER.log(Level.WARNING, "Could not delete secret file " + fileName + ": " + e.getMessage());
+                }
+            }
         }
     }
 

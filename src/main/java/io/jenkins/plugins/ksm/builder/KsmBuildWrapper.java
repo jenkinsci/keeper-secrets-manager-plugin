@@ -57,7 +57,7 @@ public class KsmBuildWrapper extends BuildWrapper {
 
                 KsmCredential credential = null;
                 try {
-                    credential = KsmCredential.getCredentialFromPublicId(app.getCredentialPublicId());
+                    credential = KsmCredential.getCredentialFromId(app.getCredentialsId());
                 } catch (Exception e) {
                     throw new AbortException(KsmCommon.errorPrefix + e.getMessage());
                 }

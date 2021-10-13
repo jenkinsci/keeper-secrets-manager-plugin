@@ -30,7 +30,6 @@ public class KsmCredentialTest {
                 "MYID",
                 "MYCRED",
                 "",
-                "",
                 Secret.fromString(clientId),
                 Secret.fromString(privateKey),
                 Secret.fromString(appKey),
@@ -41,7 +40,6 @@ public class KsmCredentialTest {
 
         assertEquals("MYID", credential.getId());
         assertEquals("MYCRED", credential.getDescription());
-        assertTrue(credential.getPublicId().startsWith("PID-"));
         assertEquals(credential.getClientId().getPlainText(), clientId);
         assertEquals(credential.getPrivateKey().getPlainText(), privateKey);
         assertEquals(credential.getAppKey().getPlainText(), appKey);
@@ -66,7 +64,6 @@ public class KsmCredentialTest {
                 CredentialsScope.GLOBAL,
                 "MYID",
                 "MYCRED",
-                "PID-8adae030041e460eb00099f746e8a126",
                 "",
                 Secret.fromString(clientId),
                 Secret.fromString(privateKey),

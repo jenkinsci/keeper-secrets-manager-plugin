@@ -95,10 +95,7 @@ public class KsmSecret extends AbstractDescribableImpl<KsmSecret> {
         if ((destination.equals(KsmSecret.destinationEnvVar)) && (envVar != null)) {
             return envVar;
         }
-        else if (filePath != null) {
-            return filePath;
-        }
-        return null;
+        return filePath;
     }
 
     @Extension

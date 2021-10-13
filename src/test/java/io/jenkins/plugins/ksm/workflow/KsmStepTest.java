@@ -129,7 +129,6 @@ public class KsmStepTest {
         KsmCredential credential = new KsmCredential(
                 CredentialsScope.GLOBAL,
                 "MYID",
-                "PID-8adae030041e460eb00099f746e8a126",
                 "",
                 "",
                 Secret.fromString("HvZKz9VBARON9nfhgbpTw3sG5EA7AVOkMXdHFu+cxXd1sHbUCoWM113tp1GdZ9iuhX+9YYl2wyqir8j637uBCA=="),
@@ -141,7 +140,7 @@ public class KsmStepTest {
                 false,
                 true);
 
-        String credentialPublicId = credential.getPublicId();
+        String credentialId = credential.getId();
 
         SystemCredentialsProvider.getInstance()
                 .setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Arrays
@@ -151,7 +150,7 @@ public class KsmStepTest {
         String pipelineScript
                 = "node {\n"
                 + "        withKsm(application: [\n"
-                + "          [ credentialPublicId: '" + credentialPublicId + "',\n"
+                + "          [ credentialsId: '" + credentialId + "',\n"
                 + "            secrets: [\n"
                 + "              [destination: 'env', envVar: 'MY_LOGIN', notation: 'keeper://A_7YpGBUgRTeDEQLhVRo0Q/field/login'],\n"
                 + "              [destination: 'file', filePath: 'out.txt', notation: 'keeper://A_7YpGBUgRTeDEQLhVRo0Q/file/my.png']\n"

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson">
-    <f:entry title="Credentials" field="credentialPublicId">
-        <f:select/>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+    <f:entry title="Credentials" field="credentialsId">
+        <c:select/>
     </f:entry>
     <f:section title="Secrets">
         <f:repeatableProperty field="secrets" add="Add Secret" minimum="1" />

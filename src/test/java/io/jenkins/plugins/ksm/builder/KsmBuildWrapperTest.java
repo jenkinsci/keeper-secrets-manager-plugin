@@ -99,7 +99,6 @@ public class KsmBuildWrapperTest {
                 CredentialsScope.GLOBAL,
                 "MYID",
                 "MYCRED",
-                "PID-8adae030041e460eb00099f746e8a126",
                 "",
                 Secret.fromString("HvZKz9VBARON9nfhgbpTw3sG5EA7AVOkMXdHFu+cxXd1sHbUCoWM113tp1GdZ9iuhX+9YYl2wyqir8j637uBCA=="),
                 Secret.fromString("MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgeBjadIx4hRcZMkADIvhb076KWfsp4cmhnufDovLV"
@@ -114,7 +113,7 @@ public class KsmBuildWrapperTest {
                 .setDomainCredentialsMap(Collections.singletonMap(Domain.global(), Arrays
                         .asList(credential)));
 
-        String credentialPublicId = credential.getPublicId();
+        String credentialId = credential.getId();
 
         // Tiny 2x2 PNG
         String pngBase64 =
@@ -188,7 +187,7 @@ public class KsmBuildWrapperTest {
 
         notation.addTestData(obj.toJSONString());
 
-        KsmApplication application = new KsmApplication(credentialPublicId, secrets);
+        KsmApplication application = new KsmApplication(credentialId, secrets);
         List<KsmApplication> applications = new ArrayList<>();
         applications.add(application);
 

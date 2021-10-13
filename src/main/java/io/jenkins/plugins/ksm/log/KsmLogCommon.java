@@ -2,7 +2,6 @@ package io.jenkins.plugins.ksm.log;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.List;

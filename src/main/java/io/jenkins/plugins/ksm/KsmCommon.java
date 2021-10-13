@@ -1,50 +1,61 @@
 package io.jenkins.plugins.ksm;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.FilePath;
-import hudson.model.ItemGroup;
+import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
+import jenkins.model.Jenkins;
 import org.json.simple.JSONObject;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.List;
 import java.util.Base64;
 
 public class KsmCommon {
 
     public static final String errorPrefix = "Keeper Secrets Manager: ";
     public static final String configPrefix = "KSM_CONFIG_BASE64_";
+    public static final String sdkConfigEnvName = "KSM_CONFIG";
     public static final String configDescPrefix = "KSM_CONFIG_BASE64_DESC_";
     public static final String configCountKey = "KSM_CONFIG_COUNT";
 
     // Using ACL.SYSTEM, the cred stuff doesn't support ACL.SYSTEM2 yet.
     // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider supports it.
     @SuppressWarnings("deprecation")
-    public static ListBoxModel buildCredentialsIdListBox(ItemGroup<?> context) {
+    public static ListBoxModel buildCredentialsIdListBox(Item item, String credentialsId) {
 
-        final ListBoxModel items = new ListBoxModel();
-
-        List<KsmCredential> ksmCredentials = CredentialsProvider.lookupCredentials(
-                KsmCredential.class,
-                context,
-                ACL.SYSTEM,
-                Collections.emptyList()
-        );
-        for (KsmCredential item : ksmCredentials) {
-            String name = item.getDescription();
-            items.add(name, item.getPublicId());
+        Jenkins instance = Jenkins.get();
+        StandardListBoxModel result = new StandardListBoxModel();
+        if (item == null) {
+            if (!instance.hasPermission(Jenkins.ADMINISTER)) {
+                return result.includeCurrentValue(credentialsId); // (2)
+            }
+        } else {
+            if (!item.hasPermission(Item.EXTENDED_READ)
+                    && !item.hasPermission(CredentialsProvider.USE_ITEM)) {
+                return result.includeCurrentValue(credentialsId); // (2)
+            }
         }
-        return items;
+        return result
+                .includeEmptyValue()
+                .includeMatchingAs(
+                        ACL.SYSTEM,
+                        instance,
+                        KsmCredential.class,
+                        Collections.emptyList(),
+                        CredentialsMatchers.always()
+                )
+                .includeCurrentValue(credentialsId);
     }
 
     @SuppressWarnings("unchecked")
@@ -78,10 +89,15 @@ public class KsmCommon {
                 description = "CONFIG_PROFILE_" + configCount;
             }
 
-            // Place the config and desc into the env var
+            // Place the config and desc into the env var for the CLI
             newEnvVars.put(configCountKey, String.valueOf(configCount));
             newEnvVars.put(configPrefix + configCount, configBase64);
             newEnvVars.put(configDescPrefix + configCount, description);
+
+            // Place the config for any of the SDKs. Can only do one, so do the first.
+            if (configCount == 1 ) {
+                newEnvVars.put(sdkConfigEnvName, configBase64);
+            }
 
             if (credential.getSkipSslVerification()) {
                 newEnvVars.put("KSM_SKIP_VERIFY", "True");

@@ -72,7 +72,7 @@ Below is an example of a Jenkinsfile using the Keeper Secrets Manager plugin.
           steps {
             withKsm(application: [
               [
-                credentialPublicId: 'PID-5142ceb84e9b4a2a9179cc5b6fe2798b',
+                credentialsId: 'PID-5142ceb84e9b4a2a9179cc5b6fe2798b',
                 secrets: [
                   [destination: 'env', envVar: 'MY_LOGIN', filePath: '', notation: 'keeper://1adh_WZxtbbHWqf6IALMVg/field/login'],
                   [destination: 'env', envVar: 'MY_SEC_PHONE_NUM', filePath: '', notation: 'keeper://Atu8tVgMxpB-iO4xT-Vu3Q/custom_field/phone[1][number]'],

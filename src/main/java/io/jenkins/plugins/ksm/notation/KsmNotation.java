@@ -67,9 +67,9 @@ public class KsmNotation {
 
     /**
      * Parse notation and keeper track the destination
-     * @param destination Flag indicating in the destination is a environmental var or  file path.
+     * @param destination Flag indicating in the destination is an environmental var or  file path.
      * @param envVar The name of the environmental variable
-     * @param filePath Path to where the secret should stored on disk.
+     * @param filePath Path to where the secret should be stored on disk.
      * @param notation The keeper notation
      * @param allowFailure Allow failure, don't throw exception, but log the error.
      * @return KsmNotationItem

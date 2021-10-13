@@ -1,8 +1,6 @@
 package io.jenkins.plugins.ksm.credential;
 
-import com.cloudbees.plugins.credentials.CredentialsNameProvider;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.*;
 import com.keepersecurity.secretsManager.core.LocalConfigStorage;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -10,7 +8,6 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
-import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import io.jenkins.plugins.ksm.KsmQuery;
 import org.kohsuke.accmod.Restricted;
@@ -21,14 +18,12 @@ import org.kohsuke.stapler.verb.POST;
 import jenkins.model.Jenkins;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconType;
 
 public class KsmCredential extends BaseStandardCredentials {
 
-    private String publicId;
     private String token;
     private Secret clientId;
     private Secret privateKey;
@@ -41,18 +36,12 @@ public class KsmCredential extends BaseStandardCredentials {
     public final static int tokenHashLength = 43;
 
     @DataBoundConstructor
-    public KsmCredential(CredentialsScope scope, String id, String description, String publicId,
+    public KsmCredential(CredentialsScope scope, String id, String description,
                          String token,
                          Secret clientId, Secret privateKey, Secret appKey,
                          String hostname,
                          boolean skipSslVerification, boolean allowConfigInject) {
         super(scope, id, description);
-
-        // If the public id is blank, generate an id. Make it not look like a UUID so not to confuse it
-        // with a real id.
-        if(publicId.equals("")) {
-            publicId = "PID-" + UUID.randomUUID().toString().replace("-","");
-        }
 
         // If the token is not blank, or already an error, redeem the token.
         if (!token.trim().equals("") && (!token.trim().startsWith(KsmCredential.tokenErrorPrefix))){
@@ -81,7 +70,6 @@ public class KsmCredential extends BaseStandardCredentials {
             token = "";
         }
 
-        this.publicId = publicId;
         this.token = token.trim();
         this.clientId = clientId;
         this.privateKey = privateKey;
@@ -91,9 +79,6 @@ public class KsmCredential extends BaseStandardCredentials {
         this.allowConfigInject = allowConfigInject;
     }
 
-    public String getPublicId() {
-        return publicId;
-    }
     public String getToken() {
         return token;
     }
@@ -120,33 +105,22 @@ public class KsmCredential extends BaseStandardCredentials {
         return token;
     }
 
-    public static KsmCredential getCredentialFromPublicId(String publicID) throws Exception {
-
-        // Validate a public id was passed in. This in mainly for script where a person can mistype the id.
-        if (publicID == null) {
-            throw new Exception("The public credential id is not defined.");
-        }
-        if (publicID.equals("")) {
-            throw new Exception("The public credential id is blank.");
-        }
-        if (!publicID.startsWith("PID-") || publicID.length() != 36) {
-            throw new Exception("The provided public credential id does not look correct. It's either missing the "
-                + "PID prefix or is not the correct length.");
-        }
+    public static KsmCredential getCredentialFromId(String credentialId) throws Exception {
 
         // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider.lookupCredentials is updated.
+        CredentialsMatcher idMatcher = CredentialsMatchers.withId(credentialId);
         List<KsmCredential> credentials = CredentialsProvider.lookupCredentials(
                 KsmCredential.class,
                 (Item) null,
                 ACL.SYSTEM,
                 Collections.emptyList()
         );
-        for(KsmCredential credential: credentials) {
-            if(credential.getPublicId().equals(publicID)) {
-                return credential;
-            }
+
+        KsmCredential credential = CredentialsMatchers.firstOrNull(credentials, idMatcher);
+        if (credential == null) {
+            throw new Exception("Cannot find the credential for the public id.");
         }
-        throw new Exception("Cannot find the credential for the public id.");
+        return credential;
     }
 
     @Extension
@@ -232,22 +206,22 @@ public class KsmCredential extends BaseStandardCredentials {
                     "ksm"
             }) {
                 IconSet.icons.addIcon(new Icon(
-                        String.format("icon-ksm icon-sm", name),
+                        "icon-ksm icon-sm",
                         String.format("keeper-secrets-manager/images/%s.svg", name),
                         Icon.ICON_SMALL_STYLE, IconType.PLUGIN)
                 );
                 IconSet.icons.addIcon(new Icon(
-                        String.format("icon-ksm icon-md", name),
+                        "icon-ksm icon-md",
                         String.format("keeper-secrets-manager/images/%s.svg", name),
                         Icon.ICON_MEDIUM_STYLE, IconType.PLUGIN)
                 );
                 IconSet.icons.addIcon(new Icon(
-                        String.format("icon-ksm icon-lg", name),
+                        "icon-ksm icon-lg",
                         String.format("keeper-secrets-manager/images/%s.svg", name),
                         Icon.ICON_LARGE_STYLE, IconType.PLUGIN)
                 );
                 IconSet.icons.addIcon(new Icon(
-                        String.format("icon-ksm icon-xlg", name),
+                        "icon-ksm icon-xlg",
                         String.format("keeper-secrets-manager/images/%s.svg", name),
                         Icon.ICON_XLARGE_STYLE, IconType.PLUGIN)
                 );

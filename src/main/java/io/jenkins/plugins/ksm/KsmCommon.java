@@ -20,6 +20,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Base64;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class KsmCommon {
 
@@ -109,6 +111,12 @@ public class KsmCommon {
 
         // Since we are concat paths, don't allow the file to start with / or \
         if (fileStr.startsWith("/") || fileStr.startsWith("\\")) {
+            return false;
+        }
+        Pattern pattern = Pattern.compile("^.:\\\\", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(fileStr);
+        boolean matchFound = matcher.find();
+        if (matchFound) {
             return false;
         }
 

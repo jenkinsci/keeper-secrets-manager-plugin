@@ -113,7 +113,7 @@ public class KsmCommon {
         if (fileStr.startsWith("/") || fileStr.startsWith("\\")) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^.:\\\\", Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile("^.:\\\\|/", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(fileStr);
         boolean matchFound = matcher.find();
         if (matchFound) {

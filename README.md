@@ -12,7 +12,7 @@ them into environmental variables in the builder and workflow pipeline.
 First, start a Jenkins instance with the keeper-secrets-manager plugin installed. You will also need to install
 [Keeper Commander](https://github.com/Keeper-Security/Commander/releases).
 
-You can optionally install the [Keeper Secrets Manager CLI](https://app.gitbook.com/@keeper-security/s/secrets-manager/secrets-manager/secrets-manager-command-line-interface) 
+You can optionally install the [Keeper Secrets Manager CLI](https://docs.keeper.io/secrets-manager/secrets-manager/secrets-manager-command-line-interface) 
 to view records and their fields.
 
 Keeper Commander will be used to generate the one time tokens used by the plugin.
@@ -23,7 +23,7 @@ Keeper Commander will be used to generate the one time tokens used by the plugin
     One Time Access Token: XX:XXXXXXXXXXX
     ------------------------------------------------------------------
 
-Documentation for Keeper Commander can be found [here](https://app.gitbook.com/@keeper-security/s/secrets-manager/commander-cli/overview).
+Documentation for Keeper Commander can be found [here](https://docs.keeper.io/secrets-manager/commander-cli/overview).
 
 Within of the Jenkins, navigate to **Manage Jenkins->Manage Credentials->(scope)->Add Credentials**, 
 then select **Keeper Secrets Manager** in the **Kind** dropdown.
@@ -201,7 +201,7 @@ To get the credit card number, the notation would look like this:
 
 ## Issues
 
-Report issues and enhancements in the [Keeper Secrets Manager issue tracker](https://github.com/jsupun/keeper-secrets-manager-plugin/issues).
+Report issues and enhancements in the [Keeper Secrets Manager issue tracker](https://github.com/jenkinsci/keeper-secrets-manager-plugin/issues).
 
 ## LICENSE
 

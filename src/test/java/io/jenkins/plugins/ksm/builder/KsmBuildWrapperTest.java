@@ -15,12 +15,10 @@ import io.jenkins.plugins.ksm.KsmSecret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
-import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.junit.Assert.*;
@@ -266,14 +264,9 @@ public class KsmBuildWrapperTest {
         String secret_url = workspace.child("secret.txt").readToString();
         assertEquals("http://localhost", secret_url);
 
-<<<<<<< HEAD
-        // The console log should contain 'echo ****' where the secrets were redacted
-        Pattern pattern = Pattern.compile("echo '\\*\\*\\*\\*'", Pattern.MULTILINE);
-=======
         // The console log should contain 'echo ****' where the secrets were redacted. Linux will add single quotes
         // for some reason, Windows does not.
         Pattern pattern = Pattern.compile("echo '*\\*\\*\\*\\*'*", Pattern.MULTILINE);
->>>>>>> ec25d8c (Fix problem with test due to Linux/Window difference)
         Matcher matcher = pattern.matcher(consoleLog);
         assertTrue(matcher.find());
 

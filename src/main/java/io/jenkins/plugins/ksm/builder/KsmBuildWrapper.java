@@ -9,7 +9,6 @@ import hudson.tasks.BuildWrapperDescriptor;
 import io.jenkins.plugins.ksm.KsmApplication;
 import io.jenkins.plugins.ksm.KsmCommon;
 import io.jenkins.plugins.ksm.KsmSecret;
-import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.log.KsmBuildConsoleLogFilter;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
@@ -263,7 +262,8 @@ public class KsmBuildWrapper extends BuildWrapper {
         @NonNull
         @Override
         public String getDisplayName() {
-            return Messages.KsmBuilder_DescriptorImpl_DisplayName();
+            // TODO: Get this to pull text out of resource file, for future i18n
+            return "Keeper Secrets Manager";
         }
     }
 }

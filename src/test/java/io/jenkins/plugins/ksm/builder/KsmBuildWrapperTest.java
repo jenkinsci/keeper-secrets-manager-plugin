@@ -12,7 +12,6 @@ import hudson.tasks.Shell;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.KsmApplication;
 import io.jenkins.plugins.ksm.KsmSecret;
-import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
@@ -26,6 +25,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
@@ -56,7 +58,7 @@ class TestWrapper extends KsmBuildWrapper {
         @NonNull
         @Override
         public String getDisplayName() {
-            return Messages.KsmBuilder_DescriptorImpl_DisplayName();
+            return "Keeper Secrets Manager";
         }
     }
 }
@@ -223,7 +225,7 @@ public class KsmBuildWrapperTest {
                 new BatchFile("type secret.txt"):
                 new Shell("cat secret.txt"));
         // TODO - redact binary ... if possible
-        //project.getBuildersList().add(Functions.isWindows() ?
+        // project.getBuildersList().add(Functions.isWindows() ?
         //        new BatchFile("type my.png"):
         //        new Shell("cat my.png"));
         project.getBuildersList().add(Functions.isWindows() ?
@@ -240,9 +242,9 @@ public class KsmBuildWrapperTest {
             buffer.append(arr, 0, numCharsRead);
         }
         r.close();
-        String targetString = buffer.toString();
+        String consoleLog = buffer.toString();
         System.out.println("-----------------------");
-        System.out.println(targetString);
+        System.out.println(consoleLog);
         System.out.println("-----------------------");
 
         // Log from file. Allowed containing secrets. This should also handle the dollar symbol correctly.
@@ -261,12 +263,23 @@ public class KsmBuildWrapperTest {
         String secret_url = workspace.child("secret.txt").readToString();
         assertEquals("http://localhost", secret_url);
 
-        // The console log should contain 'echo ****' where the secrets were redacted
-        j.assertLogContains("echo '****'", buildResult);
+        // The console log should contain 'echo ****' where the secrets were redacted. Linux will add single quotes
+        // for some reason, Windows does not.
+        Pattern pattern = Pattern.compile("echo '*\\*\\*\\*\\*'*", Pattern.MULTILINE);
+        Matcher matcher = pattern.matcher(consoleLog);
+        assertTrue(matcher.find());
 
         // The log should not contain our secrets.
-        j.assertLogNotContains("My$Login", buildResult);
-        j.assertLogNotContains("Pa$$w0rd!!", buildResult);
-        j.assertLogNotContains("http://localhost", buildResult);
+        pattern = Pattern.compile("My\\$Login", Pattern.MULTILINE);
+        matcher = pattern.matcher(consoleLog);
+        assertFalse(matcher.find());
+
+        pattern = Pattern.compile("Pa\\$\\$w0rd!!", Pattern.MULTILINE);
+        matcher = pattern.matcher(consoleLog);
+        assertFalse(matcher.find());
+
+        pattern = Pattern.compile("http://localhost", Pattern.MULTILINE);
+        matcher = pattern.matcher(consoleLog);
+        assertFalse(matcher.find());
     }
 }

@@ -15,3 +15,5 @@ sun.nio.cs.UTF_8
 sun.nio.cs.UTF_8$Encoder
 java.nio.charset.CodingErrorAction
 java.nio.HeapByteBuffer
+hudson.model.Project
+hudson.model.FreeStyleProject

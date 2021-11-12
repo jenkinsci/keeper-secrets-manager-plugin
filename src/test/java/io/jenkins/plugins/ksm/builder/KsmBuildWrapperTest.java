@@ -12,7 +12,6 @@ import hudson.tasks.Shell;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.KsmApplication;
 import io.jenkins.plugins.ksm.KsmSecret;
-import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
@@ -62,7 +61,7 @@ class TestWrapper extends KsmBuildWrapper {
         @NonNull
         @Override
         public String getDisplayName() {
-            return Messages.KsmBuilder_DescriptorImpl_DisplayName();
+            return "Keeper Secrets Manager";
         }
     }
 }
@@ -229,7 +228,7 @@ public class KsmBuildWrapperTest {
                 new BatchFile("type secret.txt"):
                 new Shell("cat secret.txt"));
         // TODO - redact binary ... if possible
-        //project.getBuildersList().add(Functions.isWindows() ?
+        // project.getBuildersList().add(Functions.isWindows() ?
         //        new BatchFile("type my.png"):
         //        new Shell("cat my.png"));
         project.getBuildersList().add(Functions.isWindows() ?
@@ -267,8 +266,14 @@ public class KsmBuildWrapperTest {
         String secret_url = workspace.child("secret.txt").readToString();
         assertEquals("http://localhost", secret_url);
 
+<<<<<<< HEAD
         // The console log should contain 'echo ****' where the secrets were redacted
         Pattern pattern = Pattern.compile("echo '\\*\\*\\*\\*'", Pattern.MULTILINE);
+=======
+        // The console log should contain 'echo ****' where the secrets were redacted. Linux will add single quotes
+        // for some reason, Windows does not.
+        Pattern pattern = Pattern.compile("echo '*\\*\\*\\*\\*'*", Pattern.MULTILINE);
+>>>>>>> ec25d8c (Fix problem with test due to Linux/Window difference)
         Matcher matcher = pattern.matcher(consoleLog);
         assertTrue(matcher.find());
 

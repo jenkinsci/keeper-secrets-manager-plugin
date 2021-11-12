@@ -16,9 +16,12 @@ import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
+import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.junit.Assert.*;
@@ -26,6 +29,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
@@ -240,9 +246,9 @@ public class KsmBuildWrapperTest {
             buffer.append(arr, 0, numCharsRead);
         }
         r.close();
-        String targetString = buffer.toString();
+        String consoleLog = buffer.toString();
         System.out.println("-----------------------");
-        System.out.println(targetString);
+        System.out.println(consoleLog);
         System.out.println("-----------------------");
 
         // Log from file. Allowed containing secrets. This should also handle the dollar symbol correctly.
@@ -262,11 +268,21 @@ public class KsmBuildWrapperTest {
         assertEquals("http://localhost", secret_url);
 
         // The console log should contain 'echo ****' where the secrets were redacted
-        j.assertLogContains("echo '****'", buildResult);
+        Pattern pattern = Pattern.compile("echo '\\*\\*\\*\\*'", Pattern.MULTILINE);
+        Matcher matcher = pattern.matcher(consoleLog);
+        assertTrue(matcher.find());
 
         // The log should not contain our secrets.
-        j.assertLogNotContains("My$Login", buildResult);
-        j.assertLogNotContains("Pa$$w0rd!!", buildResult);
-        j.assertLogNotContains("http://localhost", buildResult);
+        pattern = Pattern.compile("My\\$Login", Pattern.MULTILINE);
+        matcher = pattern.matcher(consoleLog);
+        assertFalse(matcher.find());
+
+        pattern = Pattern.compile("Pa\\$\\$w0rd!!", Pattern.MULTILINE);
+        matcher = pattern.matcher(consoleLog);
+        assertFalse(matcher.find());
+
+        pattern = Pattern.compile("http://localhost", Pattern.MULTILINE);
+        matcher = pattern.matcher(consoleLog);
+        assertFalse(matcher.find());
     }
 }

@@ -12,16 +12,13 @@ import hudson.tasks.Shell;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.KsmApplication;
 import io.jenkins.plugins.ksm.KsmSecret;
-import io.jenkins.plugins.ksm.Messages;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
-import org.hamcrest.Matchers;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.junit.Assert.*;
@@ -62,7 +59,7 @@ class TestWrapper extends KsmBuildWrapper {
         @NonNull
         @Override
         public String getDisplayName() {
-            return Messages.KsmBuilder_DescriptorImpl_DisplayName();
+            return "Keeper Secrets Manager";
         }
     }
 }
@@ -229,7 +226,7 @@ public class KsmBuildWrapperTest {
                 new BatchFile("type secret.txt"):
                 new Shell("cat secret.txt"));
         // TODO - redact binary ... if possible
-        //project.getBuildersList().add(Functions.isWindows() ?
+        // project.getBuildersList().add(Functions.isWindows() ?
         //        new BatchFile("type my.png"):
         //        new Shell("cat my.png"));
         project.getBuildersList().add(Functions.isWindows() ?
@@ -267,8 +264,9 @@ public class KsmBuildWrapperTest {
         String secret_url = workspace.child("secret.txt").readToString();
         assertEquals("http://localhost", secret_url);
 
-        // The console log should contain 'echo ****' where the secrets were redacted
-        Pattern pattern = Pattern.compile("echo '\\*\\*\\*\\*'", Pattern.MULTILINE);
+        // The console log should contain 'echo ****' where the secrets were redacted. Linux will add single quotes
+        // for some reason, Windows does not.
+        Pattern pattern = Pattern.compile("echo '*\\*\\*\\*\\*'*", Pattern.MULTILINE);
         Matcher matcher = pattern.matcher(consoleLog);
         assertTrue(matcher.find());
 

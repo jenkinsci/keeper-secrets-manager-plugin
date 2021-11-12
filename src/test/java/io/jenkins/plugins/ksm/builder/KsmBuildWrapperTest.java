@@ -25,6 +25,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.io.Serializable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,7 +33,7 @@ import java.util.regex.Pattern;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
-class TestWrapper extends KsmBuildWrapper {
+class TestWrapper extends KsmBuildWrapper implements Serializable {
 
     public TestWrapper(List<KsmApplication> application, KsmNotation notation) {
         super(application, notation);

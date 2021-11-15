@@ -40,7 +40,6 @@ class TestWrapper extends KsmBuildWrapper implements Serializable {
     }
 
     public void run(PrintStream logger) throws AbortException {
-        this.consoleLogger = logger;
         getSecrets();
     }
 

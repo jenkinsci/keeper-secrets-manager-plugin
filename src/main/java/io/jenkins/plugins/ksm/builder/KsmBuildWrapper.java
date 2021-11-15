@@ -21,7 +21,6 @@ public class KsmBuildWrapper extends BuildWrapper {
 
     private List<KsmApplication> application;
     private KsmNotation notation;
-    protected PrintStream consoleLogger;
     private List<String> secretValues;
     private List<String> secretFiles;
     private Map<String, KsmNotationItem> notationItems;

@@ -4,7 +4,7 @@
         <f:textbox/>
     </f:entry>
     <f:section title="${Destination}">
-        <f:radioBlock name="destination" value="env"  checked="${instance.isDestinationType('env')}" title="${%RadioEnvVars}" inline="true">
+        <f:radioBlock name="destination" value="env"  checked="${instance.isDestinationType('env') || instance.destination == null}" title="${%RadioEnvVars}" inline="true">
             <f:nested>
                 <f:entry title="${%EnvVars}" field="envVar">
                     <f:textbox/>

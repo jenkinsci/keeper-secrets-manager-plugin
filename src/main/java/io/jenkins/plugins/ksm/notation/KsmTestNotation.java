@@ -7,8 +7,6 @@ import java.util.*;
 import org.json.*;
 import java.util.Base64;
 
-import static com.keepersecurity.secretsManager.core.SecretsManager.downloadFile;
-
 public class KsmTestNotation extends KsmNotation {
 
     private KeeperSecrets secrets;
@@ -48,7 +46,7 @@ public class KsmTestNotation extends KsmNotation {
      * @param jsonString The JSON string
      */
 
-    public void addTestData(String jsonString) throws UnsupportedEncodingException {
+    public void addTestData(String jsonString) {
         JSONObject obj = new JSONObject(jsonString);
         JSONArray secretArr = obj.getJSONArray("secrets");
         List<KeeperRecord> records = new ArrayList<>();
@@ -128,6 +126,7 @@ public class KsmTestNotation extends KsmNotation {
             KeeperRecord record = new KeeperRecord(
                     "HI".getBytes(StandardCharsets.UTF_8),
                     uid,
+                    null,
                     null,
                     data,
                     0L,

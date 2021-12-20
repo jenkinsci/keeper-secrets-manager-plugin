@@ -6,6 +6,7 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.FilePath;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.KsmSecret;
+import io.jenkins.plugins.ksm.MockConfig;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -17,6 +18,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import org.junit.*;
+
 
 import static org.junit.Assert.assertFalse;
 
@@ -126,17 +128,17 @@ public class KsmStepTest {
         ArrayList<String> uids = new ArrayList<>();
         uids.add("A_7YpGBUgRTeDEQLhVRo0Q");
 
+        HashMap <String, String> mockConfig = new MockConfig().makeConfig();
+
         KsmCredential credential = new KsmCredential(
                 CredentialsScope.GLOBAL,
                 "MYID",
                 "",
                 "",
-                Secret.fromString("HvZKz9VBARON9nfhgbpTw3sG5EA7AVOkMXdHFu+cxXd1sHbUCoWM113tp1GdZ9iuhX+9YYl2wyqir8j637uBCA=="),
-                Secret.fromString("MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgeBjadIx4hRcZMkADIvhb076KWfsp4cmhnufDovLV"
-                        + "bxmgCgYIKoZIzj0DAQehRANCAAQKFzyJLkhasgDWC1Z5wnhFZ5416BqRL8TRMpJj2nOvfPs/wfsf8MXW2HUp54qz"
-                        + "zgi/zwLkNiFBmIzTGWE/A9oE"),
-                Secret.fromString("zhLwBKEIdiXaqVwlpnIXEl6jm/nO7WpPxYhKZv2LPGY="),
-                "keepersecurity.com",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
                 false,
                 true);
 

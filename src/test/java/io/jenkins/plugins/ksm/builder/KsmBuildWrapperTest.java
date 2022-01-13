@@ -12,6 +12,7 @@ import hudson.tasks.Shell;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.KsmApplication;
 import io.jenkins.plugins.ksm.KsmSecret;
+import io.jenkins.plugins.ksm.MockConfig;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import io.jenkins.plugins.ksm.notation.KsmNotation;
 import io.jenkins.plugins.ksm.notation.KsmTestNotation;
@@ -98,17 +99,17 @@ public class KsmBuildWrapperTest {
         ArrayList<String> uids = new ArrayList<>();
         uids.add("A_7YpGBUgRTeDEQLhVRo0Q");
 
+        HashMap <String, String> mockConfig = new MockConfig().makeConfig();
+
         KsmCredential credential = new KsmCredential(
                 CredentialsScope.GLOBAL,
                 "MYID",
                 "MYCRED",
                 "",
-                Secret.fromString("HvZKz9VBARON9nfhgbpTw3sG5EA7AVOkMXdHFu+cxXd1sHbUCoWM113tp1GdZ9iuhX+9YYl2wyqir8j637uBCA=="),
-                Secret.fromString("MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgeBjadIx4hRcZMkADIvhb076KWfsp4cmhnufDovLV"
-                        + "bxmgCgYIKoZIzj0DAQehRANCAAQKFzyJLkhasgDWC1Z5wnhFZ5416BqRL8TRMpJj2nOvfPs/wfsf8MXW2HUp54qz"
-                        + "zgi/zwLkNiFBmIzTGWE/A9oE"),
-                Secret.fromString("zhLwBKEIdiXaqVwlpnIXEl6jm/nO7WpPxYhKZv2LPGY="),
-                "keepersecurity.com",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
                 false,
                 true);
 

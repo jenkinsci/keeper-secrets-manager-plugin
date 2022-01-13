@@ -3,10 +3,13 @@ package io.jenkins.plugins.ksm.credemtial;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
+import io.jenkins.plugins.ksm.MockConfig;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
@@ -17,33 +20,29 @@ public class KsmCredentialTest {
     public static JenkinsRule j = new JenkinsRule();
 
     @Test
-    public void testSmoke() {
+    public void testSmoke() throws Exception {
 
-        String clientId = "HvZKz9VBARON9nfhgbpTw3sG5EA7AVOkMXdHFu+cxXd1sHbUCoWM113tp1GdZ9iuhX+9YYl2wyqir8j637uBCA==";
-        String privateKey = "MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgeBjadIx4hRcZMkADIvhb076KWfsp4cmhnufDovLV"
-                + "bxmgCgYIKoZIzj0DAQehRANCAAQKFzyJLkhasgDWC1Z5wnhFZ5416BqRL8TRMpJj2nOvfPs/wfsf8MXW2HUp54qz"
-                + "zgi/zwLkNiFBmIzTGWE/A9oE";
-        String appKey = "zhLwBKEIdiXaqVwlpnIXEl6jm/nO7WpPxYhKZv2LPGY=";
+        HashMap<String, String> mockConfig = new MockConfig().makeConfig();
 
         KsmCredential credential = new KsmCredential(
                 CredentialsScope.GLOBAL,
                 "MYID",
                 "MYCRED",
                 "",
-                Secret.fromString(clientId),
-                Secret.fromString(privateKey),
-                Secret.fromString(appKey),
-                "keepersecurity.com",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
                 false,
                 true);
 
 
         assertEquals("MYID", credential.getId());
         assertEquals("MYCRED", credential.getDescription());
-        assertEquals(credential.getClientId().getPlainText(), clientId);
-        assertEquals(credential.getPrivateKey().getPlainText(), privateKey);
-        assertEquals(credential.getAppKey().getPlainText(), appKey);
-        assertEquals(credential.getHostname(), "keepersecurity.com");
+        assertEquals(credential.getClientId().getPlainText(), mockConfig.get("clientId"));
+        assertEquals(credential.getPrivateKey().getPlainText(), mockConfig.get("privateKey"));
+        assertEquals(credential.getAppKey().getPlainText(), mockConfig.get("appKey"));
+        assertEquals(credential.getHostname(), mockConfig.get("hostname"));
         assertFalse(credential.getSkipSslVerification());
         assertTrue(credential.getAllowConfigInject());
 
@@ -51,24 +50,20 @@ public class KsmCredentialTest {
     }
 
     @Test
-    public void testValidation() {
+    public void testValidation() throws Exception {
 
+        HashMap<String, String> mockConfig = new MockConfig().makeConfig();
 
-        String clientId = "HvZKz9VBARON9nfhgbpTw3sG5EA7AVOkMXdHFu+cxXd1sHbUCoWM113tp1GdZ9iuhX+9YYl2wyqir8j637uBCA==";
-        String privateKey = "MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgeBjadIx4hRcZMkADIvhb076KWfsp4cmhnufDovLV"
-                + "bxmgCgYIKoZIzj0DAQehRANCAAQKFzyJLkhasgDWC1Z5wnhFZ5416BqRL8TRMpJj2nOvfPs/wfsf8MXW2HUp54qz"
-                + "zgi/zwLkNiFBmIzTGWE/A9oE";
-        String appKey = "zhLwBKEIdiXaqVwlpnIXEl6jm/nO7WpPxYhKZv2LPGY=";
 
         KsmCredential credential = new KsmCredential(
                 CredentialsScope.GLOBAL,
                 "MYID",
                 "MYCRED",
                 "",
-                Secret.fromString(clientId),
-                Secret.fromString(privateKey),
-                Secret.fromString(appKey),
-                "keepersecurity.com",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
                 false,
                 true);
 

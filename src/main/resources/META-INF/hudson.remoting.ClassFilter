@@ -6,6 +6,7 @@ com.keepersecurity.secretsManager.core.Password
 com.keepersecurity.secretsManager.core.Url
 com.keepersecurity.secretsManager.core.KeeperFile
 com.keepersecurity.secretsManager.core.KeeperFileData
+com.keepersecurity.secretsManager.core.AppData
 java.io.PrintStream
 java.io.ByteArrayOutputStream
 java.io.BufferedWriter

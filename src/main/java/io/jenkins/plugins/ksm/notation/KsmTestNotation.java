@@ -1,6 +1,7 @@
 package io.jenkins.plugins.ksm.notation;
 
 import com.keepersecurity.secretsManager.core.*;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -135,10 +136,11 @@ public class KsmTestNotation extends KsmNotation {
             records.add(record);
         }
 
-        this.secrets = new KeeperSecrets(records);
+        AppData appData = new AppData("","");
+        this.secrets = new KeeperSecrets(appData, records, null, null);
     }
 
-    public KeeperSecrets getSecrets(SecretsManagerOptions options, List<String> uids) {
+    public KeeperSecrets getNotationSecrets(SecretsManagerOptions options, List<String> uids) {
         return this.secrets;
     }
 

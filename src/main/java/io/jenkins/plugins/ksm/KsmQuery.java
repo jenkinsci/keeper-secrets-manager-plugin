@@ -64,6 +64,9 @@ public class KsmQuery {
             logger.log(Level.WARNING, "Redeeming token resulted in error: " + e.getMessage());
             throw new Exception("Cannot redeem token: " + handleException(e));
         }
+
+        logger.log(Level.FINE, "Token redeemed");
+
         return storage;
     }
 

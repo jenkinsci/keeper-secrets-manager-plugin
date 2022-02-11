@@ -10,11 +10,15 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.lang.SuppressWarnings;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class KsmNotation {
 
     // A notation might start with a prefix, that will need to be removed. This is the that String prefix.
     public static final String notationPrefix = "keeper";
+
+    private static final Logger logger = Logger.getLogger(KsmNotation.class.getName());
 
     /**
      * Check in envVar is a keeper notation and then attempt to parse it.
@@ -193,7 +197,7 @@ public class KsmNotation {
                 allowFailure);
     }
 
-    public KeeperSecrets getSecrets(SecretsManagerOptions options, List<String> uids) {
+    public KeeperSecrets getNotationSecrets(SecretsManagerOptions options, List<String> uids) {
         return SecretsManager.getSecrets(options, uids);
     }
 
@@ -222,7 +226,19 @@ public class KsmNotation {
         }
 
         // Query the unique record ids.
-        KeeperSecrets secrets = this.getSecrets(options, new ArrayList<>(uniqueUids));
+        logger.log(Level.FINE, "Retrieving " + uniqueUids.size() + " record(s).");
+        KeeperSecrets secrets = this.getNotationSecrets(options, new ArrayList<>(uniqueUids));
+        logger.log(Level.FINE, "Got " + secrets.getRecords().size() + " record(s).");
+
+        // The request uid and response record number should match. If not, one of the UID doesn't exist or
+        // application doesn't have access.
+        if ( uniqueUids.size() != secrets.getRecords().size() ) {
+            logger.log(
+                    Level.WARNING,
+                    "Did not receive the same number of record(s) as requested. " +
+                            "Some of the record uid(s) may not exist in application."
+            );
+        }
 
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
             KsmNotationItem item = entry.getValue();

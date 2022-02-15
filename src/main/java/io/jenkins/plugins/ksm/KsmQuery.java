@@ -29,9 +29,8 @@ public class KsmQuery {
         return msg;
     }
 
-    public static LocalConfigStorage redeemToken(String token, String hostname) throws Exception {
-
-        logger.log(Level.FINE, "Setting up the secrets manager options");
+    public static LocalConfigStorage redeemToken(String token, String hostname,
+                                                 boolean allowUnverifiedCertificate) throws Exception {
 
         // New style has the hostname prepended to the token, joined with a ":"
         // TODO: Let the SDK handle this, however it's not working now.
@@ -51,12 +50,14 @@ public class KsmQuery {
             }
         }
 
-        logger.log(Level.FINE, "Redeem token " + token +" from host " + hostname);
+        logger.log(Level.FINE, "Redeem token " + token +" from host " + hostname + "; Skip SSL = " +
+                allowUnverifiedCertificate);
 
         LocalConfigStorage storage = new LocalConfigStorage();
         try {
             SecretsManager.initializeStorage(storage, token, getHostname(hostname));
-            SecretsManagerOptions options = new SecretsManagerOptions(storage);
+            SecretsManagerOptions options = new SecretsManagerOptions(storage, null,
+                    allowUnverifiedCertificate);
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
             List<KeeperRecord> records = secrets.getRecords();
             logger.log(Level.FINE, "Found " + records.size() + " records with token redemption.");
@@ -79,7 +80,6 @@ public class KsmQuery {
         storage.saveString("appKey", appKey.trim());
         storage.saveString("hostname", hostname.trim());
 
-        logger.log(Level.FINE, "Setting up the secrets manager options");
         if (allowUnverifiedCertificate) {
             logger.log(Level.INFO, "Keeper Secrets Manager credential is skipping SSL certification verification. "
                     + "If you want to verify the SSL certification uncheck the skip checkbox in the Jenkins's "
@@ -92,13 +92,11 @@ public class KsmQuery {
     public static String testCredentials(String clientId, String privateKey, String appKey, String hostname,
                                          boolean allowUnverifiedCertificate) {
 
-        logger.log(Level.FINE, "Testing credentials");
+        logger.log(Level.FINE, "Testing credentials; SSL Skip = " + allowUnverifiedCertificate);
 
         try {
             SecretsManagerOptions options = getOptions(clientId, privateKey, appKey, getHostname(hostname),
                     allowUnverifiedCertificate);
-
-            logger.log(Level.FINE, options.toString());
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
             List<KeeperRecord> records = secrets.getRecords();
             logger.log(Level.FINE, "Found " + records.size() + " records");

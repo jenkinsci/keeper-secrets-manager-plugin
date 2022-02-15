@@ -46,7 +46,7 @@ public class KsmCredential extends BaseStandardCredentials {
         // If the token is not blank, or already an error, redeem the token.
         if (!token.trim().equals("") && (!token.trim().startsWith(KsmCredential.tokenErrorPrefix))){
             try {
-                LocalConfigStorage storage = KsmQuery.redeemToken(token, hostname);
+                LocalConfigStorage storage = KsmQuery.redeemToken(token, hostname, skipSslVerification);
                 clientId = Secret.fromString(storage.getString("clientId"));
                 appKey = Secret.fromString(storage.getString("appKey"));
                 privateKey = Secret.fromString(storage.getString("privateKey"));

@@ -205,7 +205,7 @@ public class KsmNotation {
         return downloadFile(file);
     }
 
-    public void run(KsmCredential credential, Map<String, KsmNotationItem> items) {
+    public void run(KsmCredential credential, Map<String, KsmNotationItem> items) throws Exception {
 
         SecretsManagerOptions options = KsmQuery.getOptions(
                 Secret.toString(credential.getClientId()),
@@ -238,6 +238,10 @@ public class KsmNotation {
                     "Did not receive the same number of record(s) as requested. " +
                             "Some of the record uid(s) may not exist in application."
             );
+            throw new Exception("Requested " + uniqueUids.size() + " record(s), received " +
+                    secrets.getRecords().size() + " records(s). This happens when a record does not exists in the " +
+                    "application, the record uid is wrong, or the record type is General. Make sure all the record " +
+                    "uids exist in your application and the records are not General type.");
         }
 
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {

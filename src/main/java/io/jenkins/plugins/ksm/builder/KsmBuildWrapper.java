@@ -99,10 +99,17 @@ public class KsmBuildWrapper extends BuildWrapper {
                 if (notationItem.getError() == null) {
                     Object value = notationItem.getValue();
 
+                    // If the value is null, set the value to blank.
+                    if ( value == null ) {
+                        notationItem.setValue("");
+                        continue;
+                    }
+
                     // Make sure we are not trying to put binary data into an environmental variable.
                     if (notationItem.isDestinationEnvVar()) {
                         if (!(value instanceof String)) {
-                            notationItem.setError("Attempted to store binary data in an environmental variable.");
+                            notationItem.setError("Attempted to store binary data in an environmental variable. " +
+                                    "The type is " + value.getClass());
                         }
                     }
 

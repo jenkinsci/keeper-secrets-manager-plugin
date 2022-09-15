@@ -32,30 +32,12 @@ public class KsmQuery {
     public static LocalConfigStorage redeemToken(String token, String hostname,
                                                  boolean allowUnverifiedCertificate) throws Exception {
 
-        // New style has the hostname prepended to the token, joined with a ":"
-        // TODO: Let the SDK handle this, however it's not working now.
-        if ( token.contains(":")) {
-            String[] parts = token.split(":");
-            if (parts.length != 2) {
-                throw new Exception("The region code/token appears to be formatted incorrectly.");
-            }
-
-            hostname = parts[0];
-            if((hostname == null) || (hostname.equals(""))) {
-                throw new Exception("The region code/hostname of the token is blank.");
-            }
-            token = parts[1];
-            if((token == null) || (token.equals(""))) {
-                throw new Exception("The hash code of the token is blank.");
-            }
-        }
-
         logger.log(Level.FINE, "Redeem token " + token +" from host " + hostname + "; Skip SSL = " +
                 allowUnverifiedCertificate);
 
         LocalConfigStorage storage = new LocalConfigStorage();
         try {
-            SecretsManager.initializeStorage(storage, token, getHostname(hostname));
+            SecretsManager.initializeStorage(storage, token, hostname);
             SecretsManagerOptions options = new SecretsManagerOptions(storage, null,
                     allowUnverifiedCertificate);
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
@@ -95,7 +77,7 @@ public class KsmQuery {
         logger.log(Level.FINE, "Testing credentials; SSL Skip = " + allowUnverifiedCertificate);
 
         try {
-            SecretsManagerOptions options = getOptions(clientId, privateKey, appKey, getHostname(hostname),
+            SecretsManagerOptions options = getOptions(clientId, privateKey, appKey, hostname,
                     allowUnverifiedCertificate);
             KeeperSecrets secrets = SecretsManager.getSecrets(options);
             List<KeeperRecord> records = secrets.getRecords();
@@ -106,27 +88,5 @@ public class KsmQuery {
         }
 
         return null;
-    }
-
-    private static String getHostname(String hostname) {
-        // Allow for aliases.
-        switch (hostname) {
-            case "US":
-                hostname = "keepersecurity.com";
-                break;
-            case "EU":
-                hostname = "keepersecurity.eu";
-                break;
-            case "AU":
-                hostname = "keepersecurity.com.au";
-                break;
-            case "US_GOV":
-                hostname = "govcloud.keepersecurity.us";
-                break;
-            default:
-                // nothing
-        }
-
-        return hostname;
     }
 }

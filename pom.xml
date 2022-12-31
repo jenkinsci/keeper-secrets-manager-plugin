@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.28</version>
+    <version>4.50</version>
     <relativePath/>
   </parent>
 
@@ -16,9 +16,10 @@
   <properties>
     <revision>1.0</revision>
     <changelist></changelist>
-    <jenkins.version>2.277.1</jenkins.version>
-    <java.level>8</java.level>
+    <jenkins.version>2.332.4</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <jenkins.addOpens />
+    <jenkins.insaneHook />
   </properties>
 
   <name>Keeper Secrets Manager</name>
@@ -27,18 +28,20 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.277.x</artifactId>
-        <version>961.vf0c9f6f59827</version>
+        <artifactId>bom-2.332.x</artifactId>
+        <version>1678.vc1feb_6a_3c0f1</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>trilead-api</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
@@ -46,12 +49,12 @@
     <dependency>
       <groupId>com.keepersecurity.secrets-manager</groupId>
       <artifactId>core</artifactId>
-      <version>16.3.6</version>
+      <version>16.4.0</version>
     </dependency>
     <dependency>
       <groupId>org.reflections</groupId>
       <artifactId>reflections</artifactId>
-      <version>0.9.12</version>
+      <version>0.10.2</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
@@ -74,6 +77,47 @@
       <artifactId>kotlin-reflect</artifactId>
       <version>1.6.21</version>
     </dependency>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>15.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.main</groupId>
+      <artifactId>jenkins-test-harness</artifactId>
+      <version>1827.v6b_cc1a_74b_ed5</version>
+    </dependency>
+
+    <!-- vulnerability fixes -->
+
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.21.9</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-core</artifactId>
+      <version>5.7.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
+      <version>5.7.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-web</artifactId>
+      <version>5.7.5</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-net</groupId>
+      <artifactId>commons-net</artifactId>
+      <version>3.9.0</version>
+    </dependency>
+
+
+    <!-- END OF vulnerability fixes -->
 
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -131,6 +175,7 @@
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
   <licenses>
     <license>
@@ -166,16 +211,4 @@
       <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>8</source>
-          <target>8</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 </project>

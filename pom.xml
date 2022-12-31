@@ -110,7 +110,11 @@
       <artifactId>spring-security-web</artifactId>
       <version>5.7.5</version>
     </dependency>
-
+    <dependency>
+      <groupId>commons-net</groupId>
+      <artifactId>commons-net</artifactId>
+      <version>3.9.0</version>
+    </dependency>
 
 
     <!-- END OF vulnerability fixes -->

@@ -1,12 +1,10 @@
 package io.jenkins.plugins.ksm;
 
 import com.keepersecurity.secretsManager.core.*;
+import net.sf.json.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.*;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 
 public class KsmQuery {
@@ -19,10 +17,9 @@ public class KsmQuery {
 
         // See if this is one of our error message
         try {
-            JSONParser jsonParser = new JSONParser();
-            JSONObject obj = (JSONObject) jsonParser.parse(msg);
-            msg = (String) obj.get("message");
-        } catch (ParseException ignore) {
+            JSONObject json = JSONObject.fromObject(msg);
+            msg = json.getString("message");
+        } catch (JSONException ignore) {
             // Don't do anything. Keep msg the same.
         }
 

@@ -12,8 +12,7 @@ import io.jenkins.plugins.ksm.notation.KsmTestNotation;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import net.sf.json.*;
 import org.jvnet.hudson.test.JenkinsRule;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
@@ -102,7 +101,7 @@ public class KsmStepTest {
         obj.put("secrets", array);
         // DONE making test JSON
 
-        notation.writeJsonData(obj.toJSONString());
+        notation.writeJsonData(obj.toString());
     }
 
     @After

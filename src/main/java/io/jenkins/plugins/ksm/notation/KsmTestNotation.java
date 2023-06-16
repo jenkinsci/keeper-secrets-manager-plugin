@@ -5,7 +5,7 @@ import com.keepersecurity.secretsManager.core.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import org.json.*;
+import net.sf.json.*;
 import java.util.Base64;
 
 public class KsmTestNotation extends KsmNotation {
@@ -48,10 +48,10 @@ public class KsmTestNotation extends KsmNotation {
      */
 
     public void addTestData(String jsonString) {
-        JSONObject obj = new JSONObject(jsonString);
+        JSONObject obj = JSONObject.fromObject(jsonString);
         JSONArray secretArr = obj.getJSONArray("secrets");
         List<KeeperRecord> records = new ArrayList<>();
-        for (int index = 0; index < secretArr.length(); index++)
+        for (int index = 0; index < secretArr.size(); index++)
         {
             String uid = secretArr.getJSONObject(index).getString("uid");
             String title = secretArr.getJSONObject(index).getString("title");
@@ -60,7 +60,7 @@ public class KsmTestNotation extends KsmNotation {
 
             List<KeeperRecordField> standardFields = new ArrayList<>();
             JSONArray fieldArr = secretArr.getJSONObject(index).getJSONArray("fields");
-            for (int fieldIndex = 0; fieldIndex < fieldArr.length(); fieldIndex++) {
+            for (int fieldIndex = 0; fieldIndex < fieldArr.size(); fieldIndex++) {
 
                 List<String> mockValue = new ArrayList<>();
                 for (Object value : fieldArr.getJSONObject(fieldIndex).getJSONArray("values")) {
@@ -99,7 +99,7 @@ public class KsmTestNotation extends KsmNotation {
 
             List<KeeperFile> files = new ArrayList<>();
             JSONArray fileArr = secretArr.getJSONObject(index).getJSONArray("files");
-            for (int fileIndex = 0; fileIndex < fileArr.length(); fileIndex++) {
+            for (int fileIndex = 0; fileIndex < fileArr.size(); fileIndex++) {
                 byte[] content = fileArr.getJSONObject(fileIndex).getString("data").getBytes(StandardCharsets.UTF_8);
 
                 fileCache.put(

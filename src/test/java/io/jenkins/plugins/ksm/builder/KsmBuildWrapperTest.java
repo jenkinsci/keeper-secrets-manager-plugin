@@ -31,8 +31,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
+import net.sf.json.*;
 
 class TestWrapper extends KsmBuildWrapper implements Serializable {
 
@@ -189,7 +188,7 @@ public class KsmBuildWrapperTest {
         obj.put("secrets", array);
         // DONE making test JSON
 
-        notation.addTestData(obj.toJSONString());
+        notation.addTestData(obj.toString());
 
         KsmApplication application = new KsmApplication(credentialId, secrets);
         List<KsmApplication> applications = new ArrayList<>();

@@ -2,8 +2,10 @@ package io.jenkins.plugins.ksm.credential;
 
 import com.cloudbees.plugins.credentials.*;
 import com.keepersecurity.secretsManager.core.LocalConfigStorage;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
@@ -37,14 +39,16 @@ public class KsmCredential extends BaseStandardCredentials {
 
     @DataBoundConstructor
     public KsmCredential(CredentialsScope scope, String id, String description,
-                         String token,
+                         @CheckForNull String token,
                          Secret clientId, Secret privateKey, Secret appKey,
                          String hostname,
                          boolean skipSslVerification, boolean allowConfigInject) {
         super(scope, id, description);
 
+        token = Util.fixNull(token).trim();
+
         // If the token is not blank, or already an error, redeem the token.
-        if (!token.trim().equals("") && (!token.trim().startsWith(KsmCredential.tokenErrorPrefix))){
+        if (!"".equals(token) && (!token.startsWith(KsmCredential.tokenErrorPrefix))){
             try {
                 LocalConfigStorage storage = KsmQuery.redeemToken(token, hostname, skipSslVerification);
                 clientId = Secret.fromString(storage.getString("clientId"));
@@ -70,7 +74,7 @@ public class KsmCredential extends BaseStandardCredentials {
             token = "";
         }
 
-        this.token = token.trim();
+        this.token = token;
         this.clientId = clientId;
         this.privateKey = privateKey;
         this.appKey = appKey;

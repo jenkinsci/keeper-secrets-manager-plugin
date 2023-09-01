@@ -127,8 +127,9 @@ public class KsmTestNotation extends KsmNotation {
             KeeperRecord record = new KeeperRecord(
                     "HI".getBytes(StandardCharsets.UTF_8),
                     uid,
-                    null,
-                    null,
+                    "FOLDERUID",
+                    "THERE".getBytes(StandardCharsets.UTF_8),
+                    "INFOLDERUID",
                     data,
                     0L,
                     files

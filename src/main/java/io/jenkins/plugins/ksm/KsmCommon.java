@@ -20,6 +20,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Base64;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,10 +33,16 @@ public class KsmCommon {
     public static final String configDescPrefix = "KSM_CONFIG_BASE64_DESC_";
     public static final String configCountKey = "KSM_CONFIG_COUNT";
 
+    private static final Logger logger = Logger.getLogger(KsmQuery.class.getName());
+
     // Using ACL.SYSTEM, the cred stuff doesn't support ACL.SYSTEM2 yet.
     // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider supports it.
     @SuppressWarnings("deprecation")
     public static ListBoxModel buildCredentialsIdListBox(Item item, String credentialsId) {
+
+        if(item != null) {
+            logger.log(Level.FINE, "Getting credential list for " + item.getDisplayName());
+        }
 
         Jenkins instance = Jenkins.get();
         StandardListBoxModel result = new StandardListBoxModel();
@@ -48,11 +56,12 @@ public class KsmCommon {
                 return result.includeCurrentValue(credentialsId); // (2)
             }
         }
+
         return result
                 .includeEmptyValue()
                 .includeMatchingAs(
                         ACL.SYSTEM,
-                        instance,
+                        item,
                         KsmCredential.class,
                         Collections.emptyList(),
                         CredentialsMatchers.always()

@@ -40,8 +40,8 @@ class TestWrapper extends KsmBuildWrapper implements Serializable {
         super(application, notation);
     }
 
-    public void run(PrintStream logger) throws AbortException {
-        getSecrets();
+    public void run(PrintStream logger, Job job) throws AbortException {
+        getSecrets(job);
     }
 
     @Extension
@@ -203,7 +203,7 @@ public class KsmBuildWrapperTest {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PrintStream logger = new PrintStream(outputStream);
 
-        buildWrapper.run(logger);
+        buildWrapper.run(logger, build.getParent());
 
         FilePath workspace = j.jenkins.getWorkspaceFor(project);
 

@@ -20,6 +20,9 @@ import org.kohsuke.stapler.verb.POST;
 import jenkins.model.Jenkins;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconType;
@@ -36,6 +39,8 @@ public class KsmCredential extends BaseStandardCredentials {
 
     public final static String tokenErrorPrefix = "Error:";
     public final static int tokenHashLength = 43;
+
+    private static final Logger logger = Logger.getLogger(KsmQuery.class.getName());
 
     @DataBoundConstructor
     public KsmCredential(CredentialsScope scope, String id, String description,
@@ -109,14 +114,19 @@ public class KsmCredential extends BaseStandardCredentials {
         return token;
     }
 
-    public static KsmCredential getCredentialFromId(String credentialId) throws Exception {
+    public static KsmCredential getCredentialFromId(String credentialId, Item item) throws Exception {
+
+
+        if(item != null) {
+            logger.log(Level.FINE, "Getting credential id for " + item.getDisplayName());
+        }
 
         // TODO: Switch to ACL.SYSTEM2 when CredentialsProvider.lookupCredentials is updated.
         CredentialsMatcher idMatcher = CredentialsMatchers.withId(credentialId);
-        List<KsmCredential> credentials = CredentialsProvider.lookupCredentials(
+        List<KsmCredential> credentials = CredentialsProvider.lookupCredentialsInItem(
                 KsmCredential.class,
-                (Item) null,
-                ACL.SYSTEM,
+                item,
+                ACL.SYSTEM2,
                 Collections.emptyList()
         );
 

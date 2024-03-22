@@ -107,7 +107,7 @@ public class KsmStep extends Step {
 
                 KsmCredential credential;
                 try {
-                    credential = KsmCredential.getCredentialFromId(application.getCredentialsId());
+                    credential = KsmCredential.getCredentialFromId(application.getCredentialsId(), run.getParent());
                 }
                 catch(Exception e) {
                     throw new AbortException(KsmCommon.errorPrefix + e.getMessage());

@@ -43,7 +43,7 @@ public class KsmBuildWrapper extends BuildWrapper {
         return notation;
     }
 
-    protected void getSecrets() {
+    protected void getSecrets(Job job) {
 
         notationItems = new HashMap<>();
         secretValues = new ArrayList<>();
@@ -55,7 +55,7 @@ public class KsmBuildWrapper extends BuildWrapper {
 
                 KsmCredential credential = null;
                 try {
-                    credential = KsmCredential.getCredentialFromId(app.getCredentialsId());
+                    credential = KsmCredential.getCredentialFromId(app.getCredentialsId(), job);
                 } catch (Exception e) {
                     throw new AbortException(KsmCommon.errorPrefix + e.getMessage());
                 }
@@ -244,7 +244,7 @@ public class KsmBuildWrapper extends BuildWrapper {
     public OutputStream decorateLogger(AbstractBuild build, OutputStream logger) throws IOException, InterruptedException, Run.RunnerAbortedException {
 
         // Load secrets here, so we have a list of secret values to give the console logger to redact.
-        this.getSecrets();
+        this.getSecrets(build.getParent());
 
         return new Filter(
                 secretValues,

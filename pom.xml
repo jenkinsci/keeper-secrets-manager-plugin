@@ -15,11 +15,11 @@
 
   <properties>
     <revision>1.0</revision>
-    <changelist></changelist>
+    <changelist/>
     <jenkins.version>2.414.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins.addOpens />
-    <jenkins.insaneHook />
+    <jenkins.addOpens/>
+    <jenkins.insaneHook/>
     <no-test-jar>false</no-test-jar>
   </properties>
 
@@ -54,7 +54,7 @@
     <dependency>
       <groupId>com.keepersecurity.secrets-manager</groupId>
       <artifactId>core</artifactId>
-      <version>16.6.3</version>
+      <version>16.6.4</version>
     </dependency>
     <dependency>
       <groupId>org.reflections</groupId>

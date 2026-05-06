@@ -132,7 +132,8 @@ public class KsmTestNotation extends KsmNotation {
                     "INFOLDERUID",
                     data,
                     0L,
-                    files
+                    files,
+                    null
             );
             records.add(record);
         }

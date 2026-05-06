@@ -45,8 +45,12 @@ public class KsmBuildWrapper extends BuildWrapper {
 
     protected void getSecrets(Job job) {
 
+        // Reset all per-run state. The BuildWrapper instance is reused across builds,
+        // so a stale error from a prior run (e.g., a 502 from the KSM endpoint) must
+        // not leak forward and abort future builds (#52).
         notationItems = new HashMap<>();
         secretValues = new ArrayList<>();
+        systemSecretError = null;
 
         // Since we are initializing this from the console, any exceptions just kill the console. Handle the errors
         // in the setup.

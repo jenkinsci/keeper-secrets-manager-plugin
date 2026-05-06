@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -283,5 +284,45 @@ public class KsmBuildWrapperTest {
         pattern = Pattern.compile("http://localhost", Pattern.MULTILINE);
         matcher = pattern.matcher(consoleLog);
         assertFalse(matcher.find());
+    }
+
+    /**
+     * Regression test for #52: a stale error from a prior run (e.g., a 502 from
+     * the KSM endpoint) must not survive on the BuildWrapper instance and abort
+     * subsequent builds. getSecrets() must reset systemSecretError on every call.
+     */
+    @Test
+    public void testStaleErrorIsClearedAcrossRuns() throws Exception {
+
+        HashMap<String, String> mockConfig = new MockConfig().makeConfig();
+        KsmCredential credential = new KsmCredential(
+                CredentialsScope.GLOBAL, "STALEID", "STALECRED", "",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
+                false, true);
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
+                Collections.singletonMap(Domain.global(), Collections.singletonList(credential)));
+
+        KsmTestNotation notation = new KsmTestNotation();
+        JSONObject obj = new JSONObject();
+        obj.put("secrets", new JSONArray());
+        notation.addTestData(obj.toJSONString());
+
+        KsmApplication app = new KsmApplication(credential.getId(), new ArrayList<>());
+        TestWrapper wrapper = new TestWrapper(Collections.singletonList(app), notation);
+
+        Field errField = KsmBuildWrapper.class.getDeclaredField("systemSecretError");
+        errField.setAccessible(true);
+        errField.set(wrapper, "stale 502 from previous run");
+        assertNotNull(errField.get(wrapper));
+
+        Run<?, ?> build = mock(Build.class);
+        when(build.getParent()).thenReturn(null);
+        wrapper.run(new PrintStream(new ByteArrayOutputStream()), build.getParent());
+
+        assertNull("systemSecretError must be reset at the start of getSecrets",
+                errField.get(wrapper));
     }
 }

@@ -146,6 +146,11 @@ public class KsmTestNotation extends KsmNotation {
         return this.secrets;
     }
 
+    @Override
+    public KeeperSecrets getNotationSecrets(SecretsManagerOptions options) {
+        return this.secrets;
+    }
+
     public byte[] downloadDataFile(KeeperFile file) {
         String name = file.getData().getName();
         return fileCache.get(name);

@@ -174,4 +174,44 @@ public class KsmStepTest {
         // Make sure the png is missing
         assertFalse(workspace.child("my.png").exists());
     }
+
+    /**
+     * Issue #43: notation should accept a record title in place of a UID.
+     * The SDK already resolves both; the plugin's parser used to reject any
+     * token that was not exactly 22 characters.
+     */
+    @Test
+    public void testStepWithRecordTitle() throws Exception {
+
+        HashMap<String, String> mockConfig = new MockConfig().makeConfig();
+
+        KsmCredential credential = new KsmCredential(
+                CredentialsScope.GLOBAL, "TITLE_ID", "", "",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
+                false, true);
+
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
+                Collections.singletonMap(Domain.global(), Collections.singletonList(credential)));
+
+        WorkflowJob job = j.getInstance().createProject(WorkflowJob.class, "test-workflow-job-title");
+        // The mock record's title is "My Record" (see makeTestData()).
+        String pipelineScript
+                = "node {\n"
+                + "        withKsm(application: [\n"
+                + "          [ credentialsId: '" + credential.getId() + "',\n"
+                + "            secrets: [\n"
+                + "              [destination: 'env', envVar: 'MY_LOGIN', notation: 'keeper://My Record/field/login']\n"
+                + "            ]\n"
+                + "          ]\n"
+                + "        ]) {\n"
+                + "          echo MY_LOGIN\n"
+                + "        }\n"
+                + "}";
+        job.setDefinition(new CpsFlowDefinition(pipelineScript, true));
+        WorkflowRun completedBuild = j.assertBuildStatusSuccess(job.scheduleBuild2(0));
+        j.assertLogContains("****", completedBuild);
+    }
 }

@@ -122,22 +122,25 @@ public class KsmCommon {
         if (fileStr.startsWith("/") || fileStr.startsWith("\\")) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^.:\\\\|/", Pattern.CASE_INSENSITIVE);
+        // Reject Windows drive-rooted paths (e.g. C:\foo, c:/foo). The previous
+        // pattern was "^.:\\\\|/" which, due to | precedence, also rejected any
+        // path containing '/' and so blocked legitimate subdirectory paths.
+        Pattern pattern = Pattern.compile("^.:[\\\\/]", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(fileStr);
-        boolean matchFound = matcher.find();
-        if (matchFound) {
+        if (matcher.find()) {
             return false;
         }
 
+        // Reject parent-directory traversal. Inspect every component including
+        // the leftmost; a do/while bound on getParentFile() != null skips the
+        // top component and lets paths like "../escape" through.
         File file = new File(fileStr);
-        do {
-            // Not sure if possible in Jenkins FilePath, however don't allow walk back up directory tree. No
-            // reason to ever use .. a file path.
-            if(file.getName().equals("..")) {
+        while (file != null) {
+            if (file.getName().equals("..")) {
                 return false;
             }
             file = file.getParentFile();
-        } while ((file != null) && (file.getParentFile() != null));
+        }
 
         return true;
     }

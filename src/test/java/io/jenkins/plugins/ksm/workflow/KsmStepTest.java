@@ -12,8 +12,8 @@ import io.jenkins.plugins.ksm.notation.KsmTestNotation;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jvnet.hudson.test.JenkinsRule;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
@@ -27,7 +27,6 @@ public class KsmStepTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
 
-    @SuppressWarnings("unchecked")
     @Before
     public void makeTestData() throws UnsupportedEncodingException {
 
@@ -68,25 +67,25 @@ public class KsmStepTest {
         field.put("label", "login");
         field.put("fieldType", "Login");
         JSONArray value = new JSONArray();
-        value.add("My$Login");
+        value.put("My$Login");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
         // Field password
         field = new JSONObject();
         field.put("label", "password");
         field.put("fieldType", "Password");
         value = new JSONArray();
-        value.add("Pa$$w0rd!!");
+        value.put("Pa$$w0rd!!");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
         // Field URL
         field = new JSONObject();
         field.put("label", "url");
         field.put("fieldType", "Url");
         value = new JSONArray();
-        value.add("http://localhost");
+        value.put("http://localhost");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
 
         secret1.put("fields", fields);
 
@@ -95,14 +94,14 @@ public class KsmStepTest {
         JSONObject file = new JSONObject();
         file.put("name", "my.png");
         file.put("data", pngBase64);
-        files.add(file);
+        files.put(file);
         secret1.put("files", files);
 
-        array.add(secret1);
+        array.put(secret1);
         obj.put("secrets", array);
         // DONE making test JSON
 
-        notation.writeJsonData(obj.toJSONString());
+        notation.writeJsonData(obj.toString());
     }
 
     @After

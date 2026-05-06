@@ -32,8 +32,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONArray;
 
 class TestWrapper extends KsmBuildWrapper implements Serializable {
 
@@ -71,7 +71,6 @@ public class KsmBuildWrapperTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testBuilder() throws Exception {
 
@@ -156,25 +155,25 @@ public class KsmBuildWrapperTest {
         field.put("label", "login");
         field.put("fieldType", "Login");
         JSONArray value = new JSONArray();
-        value.add("My$Login");
+        value.put("My$Login");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
         // Field password
         field = new JSONObject();
         field.put("label", "password");
         field.put("fieldType", "Password");
         value = new JSONArray();
-        value.add("Pa$$w0rd!!");
+        value.put("Pa$$w0rd!!");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
         // Field URL
         field = new JSONObject();
         field.put("label", "url");
         field.put("fieldType", "Url");
         value = new JSONArray();
-        value.add("http://localhost");
+        value.put("http://localhost");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
 
         secret1.put("fields", fields);
 
@@ -183,14 +182,14 @@ public class KsmBuildWrapperTest {
         JSONObject file = new JSONObject();
         file.put("name", "my.png");
         file.put("data", pngBase64);
-        files.add(file);
+        files.put(file);
         secret1.put("files", files);
 
-        array.add(secret1);
+        array.put(secret1);
         obj.put("secrets", array);
         // DONE making test JSON
 
-        notation.addTestData(obj.toJSONString());
+        notation.addTestData(obj.toString());
 
         KsmApplication application = new KsmApplication(credentialId, secrets);
         List<KsmApplication> applications = new ArrayList<>();
@@ -308,7 +307,7 @@ public class KsmBuildWrapperTest {
         KsmTestNotation notation = new KsmTestNotation();
         JSONObject obj = new JSONObject();
         obj.put("secrets", new JSONArray());
-        notation.addTestData(obj.toJSONString());
+        notation.addTestData(obj.toString());
 
         KsmApplication app = new KsmApplication(credential.getId(), new ArrayList<>());
         TestWrapper wrapper = new TestWrapper(Collections.singletonList(app), notation);

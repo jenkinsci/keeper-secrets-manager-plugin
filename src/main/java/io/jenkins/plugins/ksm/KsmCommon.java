@@ -12,7 +12,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import jenkins.model.Jenkins;
-import org.json.simple.JSONObject;
+import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -69,7 +69,6 @@ public class KsmCommon {
                 .includeCurrentValue(credentialsId);
     }
 
-    @SuppressWarnings("unchecked")
     public static void addCredentialToEnv(KsmCredential credential, EnvVars newEnvVars, EnvVars existingEnvVars) {
 
         if (credential.getAllowConfigInject()) {
@@ -91,7 +90,7 @@ public class KsmCommon {
             obj.put("privateKey", Secret.toString(credential.getPrivateKey()));
             obj.put("appKey", Secret.toString(credential.getAppKey()));
             obj.put("hostname", credential.getHostname());
-            String json = obj.toJSONString();
+            String json = obj.toString();
             String configBase64 = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
             // Get the credential's description. If blank, make one based on the config #.

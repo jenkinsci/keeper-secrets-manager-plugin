@@ -4,9 +4,8 @@ import com.keepersecurity.secretsManager.core.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.*;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class KsmQuery {
@@ -19,11 +18,10 @@ public class KsmQuery {
 
         // See if this is one of our error message
         try {
-            JSONParser jsonParser = new JSONParser();
-            JSONObject obj = (JSONObject) jsonParser.parse(msg);
-            msg = (String) obj.get("message");
-        } catch (ParseException ignore) {
-            // Don't do anything. Keep msg the same.
+            JSONObject obj = new JSONObject(msg);
+            msg = obj.getString("message");
+        } catch (JSONException ignore) {
+            // Not a JSON error payload; keep msg as-is.
         }
 
         return msg;

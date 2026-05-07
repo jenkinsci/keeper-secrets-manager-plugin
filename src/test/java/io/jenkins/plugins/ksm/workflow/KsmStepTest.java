@@ -12,8 +12,8 @@ import io.jenkins.plugins.ksm.notation.KsmTestNotation;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jvnet.hudson.test.JenkinsRule;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
@@ -27,7 +27,6 @@ public class KsmStepTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
 
-    @SuppressWarnings("unchecked")
     @Before
     public void makeTestData() throws UnsupportedEncodingException {
 
@@ -68,25 +67,25 @@ public class KsmStepTest {
         field.put("label", "login");
         field.put("fieldType", "Login");
         JSONArray value = new JSONArray();
-        value.add("My$Login");
+        value.put("My$Login");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
         // Field password
         field = new JSONObject();
         field.put("label", "password");
         field.put("fieldType", "Password");
         value = new JSONArray();
-        value.add("Pa$$w0rd!!");
+        value.put("Pa$$w0rd!!");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
         // Field URL
         field = new JSONObject();
         field.put("label", "url");
         field.put("fieldType", "Url");
         value = new JSONArray();
-        value.add("http://localhost");
+        value.put("http://localhost");
         field.put("values", value);
-        fields.add(field);
+        fields.put(field);
 
         secret1.put("fields", fields);
 
@@ -95,14 +94,14 @@ public class KsmStepTest {
         JSONObject file = new JSONObject();
         file.put("name", "my.png");
         file.put("data", pngBase64);
-        files.add(file);
+        files.put(file);
         secret1.put("files", files);
 
-        array.add(secret1);
+        array.put(secret1);
         obj.put("secrets", array);
         // DONE making test JSON
 
-        notation.writeJsonData(obj.toJSONString());
+        notation.writeJsonData(obj.toString());
     }
 
     @After
@@ -173,5 +172,45 @@ public class KsmStepTest {
 
         // Make sure the png is missing
         assertFalse(workspace.child("my.png").exists());
+    }
+
+    /**
+     * Issue #43: notation should accept a record title in place of a UID.
+     * The SDK already resolves both; the plugin's parser used to reject any
+     * token that was not exactly 22 characters.
+     */
+    @Test
+    public void testStepWithRecordTitle() throws Exception {
+
+        HashMap<String, String> mockConfig = new MockConfig().makeConfig();
+
+        KsmCredential credential = new KsmCredential(
+                CredentialsScope.GLOBAL, "TITLE_ID", "", "",
+                Secret.fromString(mockConfig.get("clientId")),
+                Secret.fromString(mockConfig.get("privateKey")),
+                Secret.fromString(mockConfig.get("appKey")),
+                mockConfig.get("hostname"),
+                false, true);
+
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
+                Collections.singletonMap(Domain.global(), Collections.singletonList(credential)));
+
+        WorkflowJob job = j.getInstance().createProject(WorkflowJob.class, "test-workflow-job-title");
+        // The mock record's title is "My Record" (see makeTestData()).
+        String pipelineScript
+                = "node {\n"
+                + "        withKsm(application: [\n"
+                + "          [ credentialsId: '" + credential.getId() + "',\n"
+                + "            secrets: [\n"
+                + "              [destination: 'env', envVar: 'MY_LOGIN', notation: 'keeper://My Record/field/login']\n"
+                + "            ]\n"
+                + "          ]\n"
+                + "        ]) {\n"
+                + "          echo MY_LOGIN\n"
+                + "        }\n"
+                + "}";
+        job.setDefinition(new CpsFlowDefinition(pipelineScript, true));
+        WorkflowRun completedBuild = j.assertBuildStatusSuccess(job.scheduleBuild2(0));
+        j.assertLogContains("****", completedBuild);
     }
 }

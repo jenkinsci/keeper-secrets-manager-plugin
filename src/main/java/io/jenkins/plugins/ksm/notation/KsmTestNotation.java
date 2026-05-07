@@ -132,7 +132,8 @@ public class KsmTestNotation extends KsmNotation {
                     "INFOLDERUID",
                     data,
                     0L,
-                    files
+                    files,
+                    null
             );
             records.add(record);
         }
@@ -142,6 +143,11 @@ public class KsmTestNotation extends KsmNotation {
     }
 
     public KeeperSecrets getNotationSecrets(SecretsManagerOptions options, List<String> uids) {
+        return this.secrets;
+    }
+
+    @Override
+    public KeeperSecrets getNotationSecrets(SecretsManagerOptions options) {
         return this.secrets;
     }
 

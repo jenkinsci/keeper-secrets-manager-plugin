@@ -12,7 +12,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import io.jenkins.plugins.ksm.credential.KsmCredential;
 import jenkins.model.Jenkins;
-import org.json.simple.JSONObject;
+import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -69,7 +69,6 @@ public class KsmCommon {
                 .includeCurrentValue(credentialsId);
     }
 
-    @SuppressWarnings("unchecked")
     public static void addCredentialToEnv(KsmCredential credential, EnvVars newEnvVars, EnvVars existingEnvVars) {
 
         if (credential.getAllowConfigInject()) {
@@ -91,7 +90,7 @@ public class KsmCommon {
             obj.put("privateKey", Secret.toString(credential.getPrivateKey()));
             obj.put("appKey", Secret.toString(credential.getAppKey()));
             obj.put("hostname", credential.getHostname());
-            String json = obj.toJSONString();
+            String json = obj.toString();
             String configBase64 = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
             // Get the credential's description. If blank, make one based on the config #.
@@ -122,22 +121,25 @@ public class KsmCommon {
         if (fileStr.startsWith("/") || fileStr.startsWith("\\")) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^.:\\\\|/", Pattern.CASE_INSENSITIVE);
+        // Reject Windows drive-rooted paths (e.g. C:\foo, c:/foo). The previous
+        // pattern was "^.:\\\\|/" which, due to | precedence, also rejected any
+        // path containing '/' and so blocked legitimate subdirectory paths.
+        Pattern pattern = Pattern.compile("^.:[\\\\/]", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(fileStr);
-        boolean matchFound = matcher.find();
-        if (matchFound) {
+        if (matcher.find()) {
             return false;
         }
 
+        // Reject parent-directory traversal. Inspect every component including
+        // the leftmost; a do/while bound on getParentFile() != null skips the
+        // top component and lets paths like "../escape" through.
         File file = new File(fileStr);
-        do {
-            // Not sure if possible in Jenkins FilePath, however don't allow walk back up directory tree. No
-            // reason to ever use .. a file path.
-            if(file.getName().equals("..")) {
+        while (file != null) {
+            if (file.getName().equals("..")) {
                 return false;
             }
             file = file.getParentFile();
-        } while ((file != null) && (file.getParentFile() != null));
+        }
 
         return true;
     }

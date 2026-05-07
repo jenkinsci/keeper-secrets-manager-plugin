@@ -18,6 +18,15 @@ public class KsmNotation {
     // A notation might start with a prefix, that will need to be removed. This is the that String prefix.
     public static final String notationPrefix = "keeper";
 
+    // Keeper record UIDs are 22-character URL-safe base64 strings. The SDK
+    // additionally accepts a record title in place of a UID; when the token
+    // does not match this pattern we treat it as a title (#43).
+    private static final Pattern UID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{22}$");
+
+    public static boolean looksLikeUid(String token) {
+        return token != null && UID_PATTERN.matcher(token).matches();
+    }
+
     private static final Logger logger = Logger.getLogger(KsmNotation.class.getName());
 
     /**
@@ -109,8 +118,8 @@ public class KsmNotation {
             throw new Exception(msg);
         }
         String uid = notationParts[0];
-        if (uid.length() != 22) {
-            throw new Exception("The record uid is not the correct length.");
+        if (uid.isEmpty()) {
+            throw new Exception("The record uid or title is missing.");
         }
 
         KsmFieldDataEnumType fieldDataType = KsmFieldDataEnumType.getEnumByString(notationParts[1]);
@@ -201,6 +210,10 @@ public class KsmNotation {
         return SecretsManager.getSecrets(options, uids);
     }
 
+    public KeeperSecrets getNotationSecrets(SecretsManagerOptions options) {
+        return SecretsManager.getSecrets(options);
+    }
+
     public byte[] downloadDataFile(KeeperFile file) {
         return downloadFile(file);
     }
@@ -214,34 +227,46 @@ public class KsmNotation {
                 credential.getHostname(),
                 credential.getSkipSslVerification());
 
-        // Find all the unique record UIDs in the requests.
-        Set<String> uniqueUids = new HashSet<>();
+        // Collect the unique record tokens (UIDs or titles) from the requests.
+        Set<String> uniqueTokens = new HashSet<>();
+        boolean allUids = true;
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
             KsmNotationItem item = entry.getValue();
             // Skip over any item already flagged as an error.
             if(item.getError() != null) {
                 continue;
             }
-            uniqueUids.add(item.getUid());
+            String token = item.getUid();
+            uniqueTokens.add(token);
+            if (!looksLikeUid(token)) {
+                allUids = false;
+            }
         }
 
-        // Query the unique record ids.
-        logger.log(Level.FINE, "Retrieving " + uniqueUids.size() + " record(s).");
-        KeeperSecrets secrets = this.getNotationSecrets(options, new ArrayList<>(uniqueUids));
-        logger.log(Level.FINE, "Got " + secrets.getRecords().size() + " record(s).");
+        // If every token looks like a UID, use the server-side filter for
+        // efficiency and verify the record count. If any token is a title,
+        // fetch all records and let the SDK resolve titles (#43).
+        KeeperSecrets secrets;
+        if (allUids) {
+            logger.log(Level.FINE, "Retrieving " + uniqueTokens.size() + " record(s) by UID.");
+            secrets = this.getNotationSecrets(options, new ArrayList<>(uniqueTokens));
+            logger.log(Level.FINE, "Got " + secrets.getRecords().size() + " record(s).");
 
-        // The request uid and response record number should match. If not, one of the UID doesn't exist or
-        // application doesn't have access.
-        if ( uniqueUids.size() != secrets.getRecords().size() ) {
-            logger.log(
-                    Level.WARNING,
-                    "Did not receive the same number of record(s) as requested. " +
-                            "Some of the record uid(s) may not exist in application."
-            );
-            throw new Exception("Requested " + uniqueUids.size() + " record(s), received " +
-                    secrets.getRecords().size() + " records(s). This happens when a record does not exists in the " +
-                    "application, the record uid is wrong, or the record type is General. Make sure all the record " +
-                    "uids exist in your application and the records are not General type.");
+            if (uniqueTokens.size() != secrets.getRecords().size()) {
+                logger.log(
+                        Level.WARNING,
+                        "Did not receive the same number of record(s) as requested. " +
+                                "Some of the record uid(s) may not exist in application."
+                );
+                throw new Exception("Requested " + uniqueTokens.size() + " record(s), received " +
+                        secrets.getRecords().size() + " records(s). This happens when a record does not exists in the " +
+                        "application, the record uid is wrong, or the record type is General. Make sure all the record " +
+                        "uids exist in your application and the records are not General type.");
+            }
+        } else {
+            logger.log(Level.FINE, "Notation includes record title(s); retrieving all records.");
+            secrets = this.getNotationSecrets(options);
+            logger.log(Level.FINE, "Got " + secrets.getRecords().size() + " record(s).");
         }
 
         for (Map.Entry<String, KsmNotationItem> entry : items.entrySet()) {
